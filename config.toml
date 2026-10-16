@@ -1,0 +1,10 @@
+project_id = "ovaceqrzhvzgugoclxyl"
+
+[functions.manage-users]
+verify_jwt = true
+
+[functions.send-renewal-email]
+verify_jwt = true
+
+[functions.send-scheduled-reminders]
+verify_jwt = false

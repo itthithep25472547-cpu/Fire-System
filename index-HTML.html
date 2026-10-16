@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบเตือนต่ออายุประกันอัคคีภัย · เทเวศประกันภัย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./supabase-config.js"></script>
+<style>
+  :root{
+    --c-primary:#0B5D66;
+    --c-primary-dark:#083F46;
+    --c-primary-light:#E1F0EF;
+    --c-ink:#182B2C;
+    --c-ink-soft:#5C6D6E;
+    --c-bg:#F5F8F7;
+    --c-surface:#FFFFFF;
+    --c-surface-2:#EFF4F3;
+    --c-border:#DCE6E4;
+    --c-border-soft:#E7EFEE;
+    --c-amber:#8A5A00;
+    --c-amber-bg:#FBF0DC;
+    --c-danger:#B3261E;
+    --c-danger-bg:#F8E2E0;
+    --c-success:#1F7A4D;
+    --c-success-bg:#E3F2E9;
+    --c-info:#2F5F8A;
+    --c-info-bg:#E7EEF5;
+    --font-head:'Kanit','Sarabun',sans-serif;
+    --font-body:'Sarabun','Kanit',sans-serif;
+    --shadow-card:0 1px 2px rgba(24,43,44,0.06), 0 1px 1px rgba(24,43,44,0.04);
+    --shadow-pop:0 16px 40px rgba(8,30,32,0.22);
+    color-scheme: light;
+  }
+  :root:not([data-theme="light"]) {
+    @media (prefers-color-scheme: dark) {
+      --c-primary:#3FA8A8; --c-primary-dark:#2C8484; --c-primary-light:#123236;
+      --c-ink:#E7EFEE; --c-ink-soft:#9FB3B2;
+      --c-bg:#0F1717; --c-surface:#172222; --c-surface-2:#1E2B2B;
+      --c-border:#2B3A3A; --c-border-soft:#233030;
+      --c-amber-bg:#3A2E11; --c-danger-bg:#3A211E; --c-success-bg:#15301F; --c-info-bg:#1A2836;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --c-primary:#3FA8A8; --c-primary-dark:#2C8484; --c-primary-light:#123236;
+    --c-ink:#E7EFEE; --c-ink-soft:#9FB3B2;
+    --c-bg:#0F1717; --c-surface:#172222; --c-surface-2:#1E2B2B;
+    --c-border:#2B3A3A; --c-border-soft:#233030;
+    --c-amber-bg:#3A2E11; --c-danger-bg:#3A211E; --c-success-bg:#15301F; --c-info-bg:#1A2836;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--c-bg); color:var(--c-ink); font-family:var(--font-body); font-size:14.5px; line-height:1.6; min-height:100vh;}
+  h1,h2,h3,h4{font-family:var(--font-head); font-weight:600; margin:0; color:var(--c-ink);}
+  button{font-family:inherit; cursor:pointer;}
+  input,select,textarea{font-family:inherit; font-size:inherit; color:var(--c-ink);}
+  a{color:inherit;}
+  ::-webkit-scrollbar{width:10px; height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--c-border); border-radius:6px;}
+
+  /* ---------- Login (split screen) ---------- */
+  #loginScreen{min-height:100vh; display:grid; grid-template-columns:1.05fr 1fr;}
+  @media (max-width:860px){ #loginScreen{grid-template-columns:1fr; grid-template-rows:auto 1fr;} }
+  .login-brand-panel{
+    background:radial-gradient(900px 480px at 85% 8%, rgba(255,255,255,0.09), transparent 60%), linear-gradient(155deg, var(--c-primary) 0%, var(--c-primary-dark) 100%);
+    color:#fff; padding:56px 52px; display:flex; flex-direction:column; justify-content:center; gap:18px;
+  }
+  @media (max-width:860px){ .login-brand-panel{padding:36px 28px; gap:12px;} }
+  .brand-mark-lg{width:56px; height:56px; border-radius:14px; background:rgba(255,255,255,0.14); display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:6px;}
+  .login-brand-panel h1{font-size:26px; line-height:1.35; color:#fff;}
+  .login-brand-en{font-size:14px; color:rgba(255,255,255,0.9); font-weight:600; margin-top:2px;}
+  .login-tagline{font-size:12.5px; color:rgba(255,255,255,0.72); margin-bottom:6px;}
+  .login-features{list-style:none; margin:6px 0 0; padding:0; display:flex; flex-direction:column; gap:10px;}
+  .login-features li{display:flex; align-items:flex-start; gap:9px; font-size:13px; color:rgba(255,255,255,0.92);}
+  .login-features li::before{content:'✓'; flex:none; width:20px; height:20px; border-radius:50%; background:rgba(255,255,255,0.18); display:flex; align-items:center; justify-content:center; font-size:11px; margin-top:1px;}
+  .login-form-panel{background:var(--c-surface); display:flex; align-items:center; justify-content:center; padding:32px;}
+  .login-form-wrap{width:100%; max-width:360px;}
+  .login-form-wrap h2{font-size:21px; margin-bottom:4px;}
+  .login-desc{color:var(--c-ink-soft); font-size:13px; margin-bottom:22px;}
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12.5px; color:var(--c-ink-soft); margin-bottom:5px; font-weight:500;}
+  .field input, .field select, .field textarea{width:100%; padding:10px 12px; border:1px solid var(--c-border); border-radius:8px; background:var(--c-surface); color:var(--c-ink); outline:none;}
+  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--c-primary); box-shadow:0 0 0 3px var(--c-primary-light);}
+  .password-wrap{position:relative;}
+  .password-wrap input{padding-right:42px;}
+  .toggle-pass-btn{position:absolute; right:6px; top:50%; transform:translateY(-50%); width:30px; height:30px; border:none; background:transparent; font-size:16px; color:var(--c-ink-soft); border-radius:6px;}
+  .toggle-pass-btn:hover{background:var(--c-surface-2);}
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 17px; border-radius:8px; border:1px solid transparent; font-size:13.5px; font-weight:600; transition:background .12s, border-color .12s, color .12s, opacity .12s;}
+  .btn:focus-visible{outline:2px solid var(--c-primary); outline-offset:2px;}
+  .btn:disabled{opacity:.55; cursor:default;}
+  .btn-primary{background:var(--c-primary); color:#fff;}
+  .btn-primary:hover{background:var(--c-primary-dark);}
+  .btn-ghost{background:transparent; color:var(--c-ink); border-color:var(--c-border);}
+  .btn-ghost:hover{background:var(--c-surface-2);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:7px 12px; font-size:12.5px; border-radius:7px;}
+  .login-error{background:var(--c-danger-bg); color:var(--c-danger); border-radius:8px; padding:9px 11px; font-size:12.5px; margin-bottom:14px; display:none;}
+  .login-hint{font-size:11.5px; color:var(--c-ink-soft); margin-top:18px; line-height:1.5;}
+
+  /* ---------- App shell (top nav) ---------- */
+  #appScreen{display:none; min-height:100vh;}
+  .topnav{position:fixed; inset:0 auto 0 0; z-index:20; width:248px; background:linear-gradient(180deg,var(--c-surface) 0%,var(--c-bg) 100%); border-right:1px solid var(--c-border); box-shadow:5px 0 24px rgba(8,63,70,.06);}
+  .topnav-inner{height:100%; padding:24px 14px; display:flex; flex-direction:column; align-items:stretch; gap:22px;}
+  .brand-compact{display:flex; align-items:center; gap:9px; flex:none;}
+  .brand-mark-sm{width:38px; height:38px; border:2px solid rgba(255,255,255,.8); border-radius:8px; background:var(--c-primary); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; box-shadow:0 0 0 3px var(--c-primary-light);}
+  .bc-th{font-family:var(--font-head); font-size:13.5px; font-weight:600; line-height:1.2;}
+  .bc-en{font-size:10.5px; color:var(--c-ink-soft); line-height:1.2;}
+  .topnav-tabs{display:flex; flex-direction:column; gap:7px; flex:1; min-height:0; overflow-y:auto; scrollbar-width:none;}
+  .topnav-tabs::-webkit-scrollbar{display:none;}
+  .nav-item{position:relative; display:flex; width:100%; min-height:44px; align-items:center; justify-content:flex-start; gap:8px; padding:10px 13px; border-radius:8px; font-size:13px; font-weight:600; color:var(--c-ink-soft); background:transparent; border:none; text-align:left; white-space:nowrap; transition:background .18s ease,color .18s ease,transform .18s ease;}
+  .nav-item:hover{background:var(--c-surface-2); color:var(--c-ink);}
+  .nav-item.active{background:var(--c-primary-light); color:var(--c-primary); box-shadow:inset 3px 0 0 var(--c-primary);}
+  .nav-item:hover{transform:translateX(2px);}
+  .nav-icon{width:24px; height:24px; display:inline-grid; place-items:center; flex:none; border-radius:7px; background:var(--c-surface-2); color:var(--c-ink-soft); font-size:14px;}
+  .nav-item.active .nav-icon{background:var(--c-primary); color:#fff;}
+  .nav-item .count{background:var(--c-danger); color:#fff; font-size:10px; font-weight:700; border-radius:20px; padding:1px 6px; line-height:1.5;}
+  .topnav-user{display:flex; flex-direction:column; align-items:stretch; gap:9px; flex:none; margin-top:auto; padding:14px 5px 3px; border-top:1px solid var(--c-border-soft);}
+  .user-chip{font-size:12.5px; font-weight:600; color:var(--c-ink-soft); background:var(--c-surface-2); padding:6px 11px; border-radius:20px;}
+  @media (max-width:760px){
+    .topnav{position:sticky; inset:auto; width:auto; height:auto; border-right:0; border-bottom:1px solid var(--c-border);}
+    .topnav-inner{height:auto; padding:10px 14px; flex-direction:row; align-items:center; gap:10px;}
+    .brand-compact{padding:0; border:0;}
+    .topnav-tabs{flex-direction:row; align-items:center; gap:3px; min-width:0; overflow-x:auto; overflow-y:hidden;}
+    .nav-item{width:auto; min-height:40px; justify-content:center; padding:8px 10px;}
+    .nav-item:hover{transform:none;}
+    .topnav-user{flex-direction:row; align-items:center; margin-top:0; padding:0; border:0;}
+    .page-head,.page-wrap{margin-left:0;}
+  }
+  @media (max-width:640px){ .bc-en{display:none;} .user-chip{display:none;} }
+
+  .page-head{margin-left:248px; background:linear-gradient(100deg,var(--c-surface) 0%,var(--c-bg) 100%); border-bottom:1px solid var(--c-border-soft);}
+  .page-head-inner{max-width:1180px; margin:0 auto; padding:25px 30px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;}
+  .page-head h1{font-size:22px;}
+  .page-head .desc{font-size:12.5px; color:var(--c-ink-soft); margin-top:3px;}
+  .offline-badge{font-size:11px; background:var(--c-amber-bg); color:var(--c-amber); padding:4px 10px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .page-wrap{max-width:1180px; margin:0 auto 0 248px; padding:28px 30px 64px;}
+
+  /* ---------- Dashboard ---------- */
+  .stat-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:22px;}
+  @media (max-width:900px){.stat-grid{grid-template-columns:repeat(2,1fr);}}
+  .stat-card{position:relative; overflow:hidden; background:var(--c-surface); border:1px solid var(--c-border-soft); border-radius:8px; padding:18px 19px; box-shadow:0 3px 12px rgba(24,43,44,.045); transition:transform .2s ease,box-shadow .2s ease; animation:panel-arrive .42s both;}
+  .stat-card:nth-child(2){animation-delay:.05s;}
+  .stat-card:nth-child(3){animation-delay:.1s;}
+  .stat-card:nth-child(4){animation-delay:.15s;}
+  .stat-card:hover{transform:translateY(-2px); box-shadow:0 9px 20px rgba(24,43,44,.09);}
+  .stat-card::after{content:''; position:absolute; top:0; right:0; width:4px; height:100%; background:currentColor; opacity:.22; pointer-events:none;}
+  .stat-card.accent-primary{color:var(--c-primary);}
+  .stat-card.accent-amber{color:var(--c-amber);}
+  .stat-card.accent-danger{color:var(--c-danger);}
+  .stat-card.accent-success{color:var(--c-success);}
+  .stat-card .label{font-size:12px; color:var(--c-ink-soft); font-weight:500; margin-bottom:8px;}
+  .stat-card .value{font-family:var(--font-head); font-size:30px; font-weight:600; line-height:1; color:var(--c-ink);}
+  .stat-card .sub{font-size:11.5px; color:var(--c-ink-soft); margin-top:6px;}
+  .stat-card.accent-primary{border-top:3px solid var(--c-primary);}
+  .stat-card.accent-amber{border-top:3px solid var(--c-amber);}
+  .stat-card.accent-danger{border-top:3px solid var(--c-danger);}
+  .stat-card.accent-success{border-top:3px solid var(--c-success);}
+  .stat-card-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px;}
+  .stat-card-head .label{margin:0;}
+  .stat-icon{width:32px; height:32px; display:grid; place-items:center; flex:none; border-radius:8px; background:var(--c-surface-2); font-size:16px; font-weight:700;}
+  .accent-primary .stat-icon{background:var(--c-primary-light);}
+  .accent-amber .stat-icon{background:var(--c-amber-bg);}
+  .accent-danger .stat-icon{background:var(--c-danger-bg);}
+  .accent-success .stat-icon{background:var(--c-success-bg);}
+
+  .panel{background:var(--c-surface); border:1px solid var(--c-border-soft); border-radius:8px; box-shadow:0 3px 14px rgba(24,43,44,.045); margin-bottom:20px; animation:panel-arrive .48s .08s both;}
+  .panel-head{display:flex; align-items:center; justify-content:space-between; padding:17px 21px; border-bottom:1px solid var(--c-border-soft); gap:12px; flex-wrap:wrap;}
+  .panel-head h3{font-size:15.5px;}
+  .panel-head .desc{font-size:12px; color:var(--c-ink-soft); margin-top:2px;}
+  .panel-body{padding:6px 20px 18px;}
+
+  .alert-row{display:flex; align-items:center; gap:12px; padding:12px 8px; border-bottom:1px solid var(--c-border-soft); flex-wrap:wrap;}
+  .alert-row:last-child{border-bottom:none;}
+  .alert-dot{width:9px; height:9px; border-radius:50%; flex:none;}
+  .alert-row .who{font-weight:600; font-size:13.5px;}
+  .alert-row .meta{font-size:12px; color:var(--c-ink-soft); margin-top:1px;}
+  .alert-row .spacer{flex:1;}
+  .empty-state{padding:36px 14px; text-align:center; color:var(--c-ink-soft);}
+  .empty-state .big{font-size:30px; margin-bottom:8px;}
+  .empty-state .msg{font-size:13.5px; margin-bottom:14px;}
+
+  .badge{display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:20px; font-size:11.5px; font-weight:600; white-space:nowrap;}
+  .badge-danger{background:var(--c-danger-bg); color:var(--c-danger);}
+  .badge-amber{background:var(--c-amber-bg); color:var(--c-amber);}
+  .badge-success{background:var(--c-success-bg); color:var(--c-success);}
+  .badge-info{background:var(--c-info-bg); color:var(--c-info);}
+  .badge-neutral{background:var(--c-surface-2); color:var(--c-ink-soft); border:1px solid var(--c-border);}
+
+  .table-toolbar{display:flex; align-items:center; gap:10px; padding:14px 20px; flex-wrap:wrap;}
+  .table-toolbar input[type=search]{flex:1; min-width:200px; padding:9px 12px; border:1px solid var(--c-border); border-radius:8px; background:var(--c-surface-2);}
+  .table-toolbar select{padding:9px 10px; border:1px solid var(--c-border); border-radius:8px; background:var(--c-surface-2);}
+  .table-wrap{overflow-x:auto; padding:0 20px 18px;}
+  table{width:100%; border-collapse:collapse; min-width:680px;}
+  thead th{text-align:right; font-size:11.5px; color:var(--c-ink-soft); font-weight:600; padding:9px 10px; border-bottom:1px solid var(--c-border); white-space:nowrap;}
+  tbody td{padding:11px 10px; border-bottom:1px solid var(--c-border-soft); font-size:13px; vertical-align:middle;}
+  tbody tr:hover{background:var(--c-surface-2);}
+  .cell-strong{font-weight:600;}
+  .cell-soft{color:var(--c-ink-soft); font-size:12px;}
+  .row-actions{display:flex; gap:5px; justify-content:flex-end;}
+  .icon-btn{width:29px; height:29px; border-radius:7px; border:1px solid var(--c-border); background:var(--c-surface); display:flex; align-items:center; justify-content:center; font-size:14px; color:var(--c-ink-soft);}
+  .icon-btn:hover{background:var(--c-surface-2); color:var(--c-ink);}
+  .icon-btn.danger:hover{background:var(--c-danger-bg); color:var(--c-danger); border-color:var(--c-danger-bg);}
+
+  .btn{transition:transform .16s ease,background .16s ease,box-shadow .16s ease;}
+  .btn-primary{box-shadow:0 3px 8px rgba(11,93,102,.16);}
+  .btn-primary:hover{transform:translateY(-1px); box-shadow:0 5px 12px rgba(11,93,102,.22);}
+  .table-toolbar input[type=search],.table-toolbar select{background:var(--c-surface); transition:border-color .16s ease,box-shadow .16s ease;}
+  .table-toolbar input[type=search]:focus,.table-toolbar select:focus{outline:none; border-color:var(--c-primary); box-shadow:0 0 0 3px var(--c-primary-light);}
+  .login-brand-panel{position:relative; isolation:isolate; overflow:hidden; background:radial-gradient(circle at 90% 10%,rgba(239,178,68,.22),transparent 26%),linear-gradient(145deg,#0b5d66 0%,#083f46 72%,#072e34 100%);}
+  .login-brand-panel::after{content:''; position:absolute; z-index:-1; inset:0; opacity:.2; background:repeating-linear-gradient(135deg,transparent 0 24px,rgba(255,255,255,.09) 24px 25px); mask-image:linear-gradient(135deg,#000,transparent 75%);}
+  .brand-mark-lg{border:1px solid rgba(255,255,255,.3); box-shadow:0 0 0 7px rgba(255,255,255,.06);}
+  .login-form-wrap{padding:30px; border:1px solid var(--c-border-soft); border-radius:10px; box-shadow:0 14px 38px rgba(24,43,44,.08);}
+  .login-form-wrap h2{font-size:23px;}
+  @keyframes panel-arrive{from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:translateY(0);}}
+  @media (max-width:760px){.topnav-inner{padding:10px 14px; gap:10px;} .nav-icon{width:22px; height:22px;} .page-head,.page-wrap{margin-left:0;} .page-head-inner{padding:18px;} .page-wrap{padding:20px 16px 48px;} .login-form-wrap{padding:0; border:0; box-shadow:none;}}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important;}}
+
+  /* ---------- Modal ---------- */
+  .modal-overlay{position:fixed; inset:0; background:rgba(8,20,22,0.55); display:none; align-items:flex-start; justify-content:center; padding:40px 18px; z-index:50; overflow-y:auto;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--c-surface); border-radius:14px; width:100%; max-width:660px; box-shadow:var(--shadow-pop); max-height:calc(100vh - 80px); display:flex; flex-direction:column;}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; padding:18px 22px; border-bottom:1px solid var(--c-border-soft);}
+  .modal-head h3{font-size:16.5px;}
+  .modal-close{width:30px; height:30px; border-radius:8px; border:none; background:var(--c-surface-2); font-size:15px; color:var(--c-ink-soft);}
+  .modal-close:hover{background:var(--c-border-soft);}
+  .modal-body{padding:18px 22px; overflow-y:auto;}
+  .modal-foot{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 22px; border-top:1px solid var(--c-border-soft); flex-wrap:wrap;}
+  .form-section-title{font-size:11.5px; font-weight:700; color:var(--c-primary); letter-spacing:.01em; margin:18px 0 10px;}
+  .form-section-title:first-child{margin-top:0;}
+  .form-caption{font-size:11px; color:var(--c-ink-soft); margin:-4px 0 12px; line-height:1.5;}
+  .form-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px 14px;}
+  .form-grid .full{grid-column:1 / -1;}
+  @media (max-width:560px){.form-grid{grid-template-columns:1fr;}}
+  .req{color:var(--c-danger);}
+  .field-computed{background:var(--c-surface-2) !important; color:var(--c-ink-soft); font-weight:600;}
+  .field-computed.total{color:var(--c-primary-dark); font-weight:700;}
+  .autosave-status{font-size:11.5px; color:var(--c-ink-soft);}
+  .autosave-status.ok{color:var(--c-success);}
+
+  /* ---------- Notices view ---------- */
+  .notice-layout{display:grid; grid-template-columns:360px 1fr; gap:18px; align-items:start;}
+  @media (max-width:980px){.notice-layout{grid-template-columns:1fr;}}
+  .notice-doc{background:#fff; color:#1c1c1c; border:1px solid var(--c-border-soft); border-radius:8px; padding:38px 40px; font-family:Georgia,'Times New Roman',serif; box-shadow:var(--shadow-card);}
+  .notice-doc .doc-head{display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #1c1c1c; padding-bottom:14px; margin-bottom:20px;}
+  .notice-doc .doc-title{font-size:20px; font-weight:700;}
+  .notice-doc .doc-sub{font-family:Arial,sans-serif; font-size:11.5px; color:#555; margin-top:3px;}
+  .notice-doc .doc-no{font-family:Arial,sans-serif; font-size:12px; text-align:left; color:#333;}
+  .notice-doc .doc-para{font-family:Arial,sans-serif; font-size:13.5px; line-height:1.8; margin:0 0 14px;}
+  .notice-doc .doc-table{width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:13px; margin:14px 0 18px;}
+  .notice-doc .doc-table td{padding:7px 4px; border-bottom:1px solid #e2e2e2;}
+  .notice-doc .doc-table td:first-child{color:#555; width:48%;}
+  .notice-doc .doc-table td:last-child{font-weight:600; text-align:left;}
+  .notice-doc .premium-table .total-row td{border-top:2px solid #1c1c1c; border-bottom:none; padding-top:9px; font-weight:700; font-size:14px;}
+  .notice-doc .pay-box{background:#F2F6F5; border:1px solid #DCE6E4; border-radius:6px; padding:14px 16px; font-family:Arial,sans-serif; font-size:12.5px; margin-top:6px;}
+  .notice-doc .pay-box .t{font-weight:700; margin-bottom:7px; font-size:12.5px;}
+  .notice-doc .sign-area{font-family:Arial,sans-serif; font-size:12.5px; margin-top:30px; text-align:left; color:#333; line-height:1.6;}
+
+  .field-compact{margin-bottom:11px;}
+  .field-compact label{display:block; font-size:11.5px; color:var(--c-ink-soft); margin-bottom:4px; font-weight:500;}
+  .field-compact input, .field-compact select, .field-compact textarea{width:100%; padding:8px 10px; border:1px solid var(--c-border); border-radius:7px; background:var(--c-surface-2);}
+  .field-compact .reminder-toggle{display:flex; align-items:center; gap:8px;}
+  .field-compact .reminder-toggle input{width:16px; height:16px; margin:0; padding:0; accent-color:var(--c-primary);}
+  .field-compact input.field-computed{background:var(--c-border-soft) !important;}
+  .notice-list-row{display:flex; align-items:center; gap:10px; padding:11px 4px; border-bottom:1px solid var(--c-border-soft); font-size:12.5px; flex-wrap:wrap;}
+  .notice-list-row:last-child{border-bottom:none;}
+
+  .hidden{display:none !important;}
+
+  @media print{
+    body *{visibility:hidden;}
+    #printArea, #printArea *{visibility:visible;}
+    #printArea{position:absolute; top:0; left:0; width:100%; padding:0; margin:0; box-shadow:none; border:none;}
+    @page{margin:16mm;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="loginScreen">
+  <div class="login-brand-panel">
+    <div class="brand-mark-lg">🛡️</div>
+    <h1>ระบบเตือนต่ออายุ<br>ประกันอัคคีภัย</h1>
+    <div class="login-brand-en">The Deves Insurance Public Company Limited</div>
+    <div class="login-tagline">Pride in Protection</div>
+    <ul class="login-features">
+      <li>ติดตามวันครบกำหนดต่ออายุกรมธรรม์อัตโนมัติ</li>
+      <li>ออกใบเตือนพร้อมคำนวณเบี้ยประกันภัยให้ครบถ้วน</li>
+      <li>ดาวน์โหลดใบเตือนเป็น PDF และส่งออกรายงานเป็น Excel ได้ทันที</li>
+    </ul>
+  </div>
+  <div class="login-form-panel">
+    <div class="login-form-wrap">
+      <h2>เข้าสู่ระบบ</h2>
+      <div class="login-desc">สำหรับเจ้าหน้าที่ดูแลกรมธรรม์เท่านั้น</div>
+      <div class="login-error" id="loginError">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+      <form id="loginForm">
+        <div class="field"><label for="loginUser">อีเมล หรือชื่อผู้ใช้ในโหมดเครื่องเดียว</label><input type="text" id="loginUser" autocomplete="username" placeholder="name@company.com" required></div>
+        <div class="field"><label for="loginPass">รหัสผ่าน</label>
+          <div class="password-wrap">
+            <input type="password" id="loginPass" autocomplete="current-password" placeholder="••••••••" required>
+            <button type="button" id="togglePassBtn" class="toggle-pass-btn" aria-label="แสดงรหัสผ่าน">👁</button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">เข้าสู่ระบบ</button>
+      </form>
+      <div class="login-hint" id="loginHint">โหมดเครื่องเดียวใช้บัญชี Admin; หากตั้งค่า Supabase ระบบจะใช้บัญชีอีเมลที่สร้างไว้ใน Supabase</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="appScreen">
+  <header class="topnav">
+    <div class="topnav-inner">
+      <div class="brand-compact">
+        <div class="brand-mark-sm">🛡️</div>
+        <div><div class="bc-th">เทเวศประกันภัย</div><div class="bc-en">Renewal Tracker</div></div>
+      </div>
+      <nav class="topnav-tabs">
+        <button class="nav-item" data-view="dashboard"><span class="nav-icon" aria-hidden="true">⌂</span>แดชบอร์ด</button>
+        <button class="nav-item" data-view="policies"><span class="nav-icon" aria-hidden="true">▤</span>กรมธรรม์ทั้งหมด<span class="count hidden" id="navPolicyCount" style="margin-inline-start:6px;"></span></button>
+        <button class="nav-item" data-view="notices"><span class="nav-icon" aria-hidden="true">✉</span>ใบเตือนต่ออายุ</button>
+        <button class="nav-item" data-view="reports"><span class="nav-icon" aria-hidden="true">▥</span>รายงาน Excel</button>
+        <button class="nav-item hidden" data-view="users" id="userManagementNav"><span class="nav-icon" aria-hidden="true">＋</span>บัญชีผู้ใช้</button>
+      </nav>
+      <div class="topnav-user">
+        <span class="user-chip" id="userChip">👤 Admin</span>
+        <button class="btn btn-ghost btn-sm" id="logoutBtn">ออกจากระบบ</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="page-head">
+    <div class="page-head-inner">
+      <div>
+        <h1 id="topbarTitle">แดชบอร์ด</h1>
+        <div class="desc" id="topbarDesc">ภาพรวมกรมธรรม์และกำหนดต่ออายุ</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span class="offline-badge hidden" id="offlineBadge">ข้อมูลบันทึกในเบราว์เซอร์นี้เท่านั้น</span>
+        <button class="btn btn-primary btn-sm" id="topAddPolicyBtn">+ เพิ่มกรมธรรม์</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="page-wrap"><div id="content"></div></main>
+</div>
+
+<!-- ===================== POLICY MODAL ===================== -->
+<div class="modal-overlay" id="policyModalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="policyModalTitle">เพิ่มกรมธรรม์ใหม่</h3>
+      <button class="modal-close" id="policyModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="policyForm" onsubmit="return false;">
+        <div class="form-section-title">ข้อมูลกรมธรรม์</div>
+        <div class="form-caption">บริษัทผู้รับประกันภัย: <strong>บริษัท เทเวศประกันภัย จำกัด (มหาชน)</strong> (คงที่ทุกกรมธรรม์)</div>
+        <div class="form-grid">
+          <div class="field-compact"><label>เลขที่กรมธรรม์ <span class="req">*</span></label><input type="text" id="f_policyNumber" required placeholder="FIR-2569-00123"></div>
+          <div class="field-compact"><label>ประเภทความคุ้มครอง</label>
+            <select id="f_policyType">
+              <option value="ที่อยู่อาศัย">ที่อยู่อาศัย</option>
+              <option value="อาคารพาณิชย์">อาคารพาณิชย์</option>
+              <option value="โรงงานอุตสาหกรรม">โรงงานอุตสาหกรรม</option>
+              <option value="คลังสินค้า">คลังสินค้า</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+          <div class="field-compact"><label>วันที่เริ่มคุ้มครอง <span class="req">*</span></label><input type="date" id="f_startDate" required></div>
+          <div class="field-compact"><label>วันที่สิ้นสุดความคุ้มครอง <span class="req">*</span></label><input type="date" id="f_endDate" required></div>
+        </div>
+
+        <div class="form-section-title">การคำนวณเบี้ยประกันภัย</div>
+        <div class="form-caption">กรอกทุนประกันภัยและอัตราเบี้ยฯ ระบบจะคำนวณเบี้ยสุทธิ ภาษีมูลค่าเพิ่ม 7% และอากรแสตมป์ 0.4% ให้อัตโนมัติ (อัตรามาตรฐานทั่วไป โปรดตรวจสอบกับอัตราจริงของบริษัทประกันภัยหรือผู้เชี่ยวชาญด้านภาษี)</div>
+        <div class="form-grid">
+          <div class="field-compact"><label>ทุนประกันภัย (บาท) <span class="req">*</span></label><input type="number" id="f_sumInsured" required min="0" step="1000" placeholder="2000000"></div>
+          <div class="field-compact"><label>อัตราเบี้ยประกันภัย (% ต่อปี)</label><input type="number" id="f_premiumRate" min="0" step="0.01" placeholder="0.10"></div>
+          <div class="field-compact"><label>เบี้ยประกันภัยสุทธิ (บาท)</label><input type="number" id="f_netPremium" min="0" step="1"></div>
+          <div class="field-compact"><label>ภาษีมูลค่าเพิ่ม 7% (บาท)</label><input type="number" id="f_vatAmount" class="field-computed" readonly></div>
+          <div class="field-compact"><label>อากรแสตมป์ 0.4% (บาท)</label><input type="number" id="f_dutyAmount" class="field-computed" readonly></div>
+          <div class="field-compact"><label>เบี้ยประกันภัยรวมที่ต้องชำระ (บาท)</label><input type="number" id="f_premiumTotal" class="field-computed total" readonly></div>
+        </div>
+
+        <div class="form-section-title">ข้อมูลผู้เอาประกันภัย</div>
+        <div class="form-grid">
+          <div class="field-compact"><label>ชื่อผู้เอาประกันภัย <span class="req">*</span></label><input type="text" id="f_insuredName" required placeholder="นาย/นาง/บจก. ..."></div>
+          <div class="field-compact"><label>เลขบัตรประชาชน/นิติบุคคล</label><input type="text" id="f_idNumber" placeholder="1-2345-67890-12-3"></div>
+          <div class="field-compact full"><label>ที่อยู่ทรัพย์สินที่เอาประกันภัย</label><textarea id="f_address" rows="2" placeholder="เลขที่ ถนน ตำบล/แขวง อำเภอ/เขต จังหวัด รหัสไปรษณีย์"></textarea></div>
+          <div class="field-compact"><label>เบอร์โทรศัพท์</label><input type="text" id="f_phone" placeholder="08x-xxx-xxxx"></div>
+          <div class="field-compact"><label>อีเมล</label><input type="email" id="f_email" placeholder="name@email.com"></div>
+          <div class="field-compact full"><label class="reminder-toggle"><input type="checkbox" id="f_emailReminderEnabled"><span>ส่งอีเมลเตือนอัตโนมัติก่อนหมดอายุ 30 และ 7 วัน</span></label></div>
+        </div>
+
+        <div class="form-section-title">ข้อมูลการชำระเงิน</div>
+        <div class="form-grid">
+          <div class="field-compact"><label>สถานะการชำระเงิน</label>
+            <select id="f_paymentStatus"><option value="รอชำระ">รอชำระ</option><option value="ชำระแล้ว">ชำระแล้ว</option><option value="ค้างชำระ">ค้างชำระ</option></select>
+          </div>
+          <div class="field-compact"><label>วิธีการชำระเงิน</label>
+            <select id="f_paymentMethod"><option value="โอนเงิน">โอนเงิน</option><option value="เงินสด">เงินสด</option><option value="บัตรเครดิต">บัตรเครดิต</option><option value="เช็ค">เช็ค</option></select>
+          </div>
+          <div class="field-compact"><label>วันครบกำหนดชำระ</label><input type="date" id="f_dueDate"></div>
+          <div class="field-compact"><label>วันที่ชำระเงิน (ถ้ามี)</label><input type="date" id="f_paidDate"></div>
+          <div class="field-compact full"><label>บัญชี/ธนาคารสำหรับรับชำระ</label><input type="text" id="f_bankInfo" placeholder="ธ.กรุงเทพ สาขาสีลม เลขที่บัญชี 123-4-56789-0 ชื่อบัญชี บมจ. เทเวศประกันภัย"></div>
+        </div>
+
+        <div class="form-section-title">หมายเหตุ</div>
+        <div class="form-grid"><div class="field-compact full"><textarea id="f_notes" rows="2" placeholder="หมายเหตุเพิ่มเติม (ถ้ามี)"></textarea></div></div>
+      </form>
+    </div>
+    <div class="modal-foot">
+      <span class="autosave-status" id="policyAutosaveStatus">เริ่มกรอกข้อมูลเพื่อบันทึกอัตโนมัติ</span>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost btn-sm hidden" id="policyDeleteInModalBtn">ลบกรมธรรม์นี้</button>
+        <button class="btn btn-primary" id="policyDoneBtn">เสร็จสิ้น</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+
+// ---------------------------------------------------------------
+// Constants & helpers
+// ---------------------------------------------------------------
+const THAI_MONTHS = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const EN_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const AUTH_KEY = 'fireins_admin_authed';
+const VALID_USER = 'Admin';
+const VALID_PASS = 'Admin12345';
+const SUPABASE_CONFIG = window.FIREINS_SUPABASE_CONFIG || {};
+const supabaseConfigured = Boolean(SUPABASE_CONFIG.url && SUPABASE_CONFIG.anonKey);
+const supabaseClient = supabaseConfigured && window.supabase?.createClient
+  ? window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey)
+  : null;
+const INSURER_TH = 'บริษัท เทเวศประกันภัย จำกัด (มหาชน)';
+const INSURER_EN = 'The Deves Insurance Public Company Limited';
+const INSURER_ADDRESS_EN = '97-99 Ratchadamnoen Klang Avenue, Phranakorn, Bangkok 10200, Thailand';
+const DEFAULT_EMAIL_SUBJECT = 'Fire Insurance Renewal Notice — Policy {{policyNumber}}';
+const DEFAULT_EMAIL_BODY = 'Dear {{recipientName}},\n\nThis is a reminder that your fire insurance policy {{policyNumber}} with {{insurerName}} is due to expire on {{expiryDate}}.\n\nSum Insured: {{sumInsured}}\nNet Premium: {{netPremium}}\nVAT (7%): {{vatAmount}}\nStamp Duty (0.4%): {{dutyAmount}}\nTotal Premium Payable: {{totalPremium}}\nPayment Due Date: {{paymentDueDate}}\n\nPlease find the renewal notice attached (PDF). Kindly arrange payment before the due date to avoid a lapse in coverage.\n\nShould you have already made payment or contacted us, please disregard this notice.\n\nSincerely,\nPolicy Administration Team\n{{insurerName}}';
+const DEFAULT_RATE = {'ที่อยู่อาศัย':0.10,'อาคารพาณิชย์':0.25,'โรงงานอุตสาหกรรม':0.45,'คลังสินค้า':0.35,'อื่นๆ':0.20};
+const TYPE_EN = {'ที่อยู่อาศัย':'Residential','อาคารพาณิชย์':'Commercial Building','โรงงานอุตสาหกรรม':'Industrial Factory','คลังสินค้า':'Warehouse','อื่นๆ':'Other'};
+
+function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function parseDate(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d) ? null : d; }
+function daysUntil(dateStr){ const d = parseDate(dateStr); if(!d) return null; return Math.ceil((d - todayStart())/86400000); }
+function formatThaiDate(dateStr){ const d = parseDate(dateStr); if(!d) return '—'; return `${d.getDate()} ${THAI_MONTHS[d.getMonth()]} ${d.getFullYear()+543}`; }
+function formatEnglishDate(dateStr){ const d = parseDate(dateStr); if(!d) return '—'; return `${d.getDate()} ${EN_MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function formatBaht(n){ const v = Number(n)||0; return v.toLocaleString('th-TH', {minimumFractionDigits:0, maximumFractionDigits:2}) + ' บาท'; }
+function formatBahtEN(n){ const v = Number(n)||0; return 'THB ' + v.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function uid(){ return 'id_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function nowTimeStr(){ return new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit', second:'2-digit'}); }
+function byId(id){ return document.getElementById(id); }
+function calcNet(sum,rate){ return Math.round((Number(sum)||0)*(Number(rate)||0)/100); }
+function calcVat(net){ return Math.round((Number(net)||0)*0.07); }
+function calcDuty(net){ return Math.round((Number(net)||0)*0.004); }
+
+function policyStatus(p){
+  const days = daysUntil(p.endDate);
+  if(days===null) return {key:'unknown', label:'ไม่ระบุ', badge:'badge-neutral'};
+  if(days < 0) return {key:'expired', label:'หมดอายุแล้ว', badge:'badge-danger', days};
+  if(days <= 30) return {key:'near', label:`ใกล้ครบกำหนด (${days} วัน)`, badge:'badge-amber', days};
+  return {key:'ok', label:'ปกติ', badge:'badge-success', days};
+}
+function paymentBadge(status){
+  if(status==='ชำระแล้ว') return 'badge-success';
+  if(status==='ค้างชำระ') return 'badge-danger';
+  return 'badge-info';
+}
+
+// ---------------------------------------------------------------
+// State
+// ---------------------------------------------------------------
+let dbNS = null;
+let downloadsNS = null;
+let offlineMode = false;
+let realtimeChannel = null;
+let canManageUsers = false;
+let currentUserRole = 'staff';
+let policies = [];
+let notices = [];
+let currentView = 'dashboard';
+let editingPolicyId = null;
+let policySearch = '';
+let policyFilter = 'all';
+let activeNoticeDraft = null;
+function fillTemplate(str, d){
+  const map = {
+    recipientName: d.recipientName || 'Valued Customer', policyNumber: d.policyNumber || '—', insurerName: INSURER_EN,
+    policyType: translatePolicyType(d.policyType), sumInsured: formatBahtEN(d.sumInsured), netPremium: formatBahtEN(d.netPremium),
+    vatAmount: formatBahtEN(d.vatAmount), dutyAmount: formatBahtEN(d.dutyAmount), totalPremium: formatBahtEN(d.premium),
+    expiryDate: formatEnglishDate(d.expiryDate), paymentDueDate: formatEnglishDate(d.paymentDueDate),
+    noticeNumber: d.noticeNumber || '—', issueDate: formatEnglishDate(d.issueDate),
+  };
+  return String(str||'').replace(/\{\{(\w+)\}\}/g, (m,k)=> (k in map) ? map[k] : m);
+}
+let policyAutosaveTimer = null;
+let noticeAutosaveTimer = null;
+
+// ---------------------------------------------------------------
+// Offline (localStorage) storage
+// ---------------------------------------------------------------
+function loadOffline(){
+  try{
+    policies = JSON.parse(localStorage.getItem('fireins_policies')||'[]');
+    notices = JSON.parse(localStorage.getItem('fireins_notices')||'[]');
+  }catch(e){ policies=[]; notices=[]; }
+}
+function saveOfflinePolicies(){ try{ localStorage.setItem('fireins_policies', JSON.stringify(policies)); }catch(e){} }
+function saveOfflineNotices(){ try{ localStorage.setItem('fireins_notices', JSON.stringify(notices)); }catch(e){} }
+
+// ---------------------------------------------------------------
+// DB init & sync (falls back to per-browser storage when unavailable)
+// ---------------------------------------------------------------
+async function initData(){
+  try{ if(window.claude && window.claude.use){ dbNS = await window.claude.use('db'); } }catch(e){ dbNS = null; }
+  try{ if(window.claude && window.claude.use){ downloadsNS = await window.claude.use('downloads'); } }catch(e){ downloadsNS = null; }
+
+  if(supabaseClient){
+    offlineMode = false;
+    document.getElementById('offlineBadge').classList.add('hidden');
+    await syncUserManagementAccess();
+    await Promise.all([
+      refreshCloudCollection('fire_insurance_policies', 'policies'),
+      refreshCloudCollection('fire_insurance_notices', 'notices'),
+    ]);
+    if(realtimeChannel) await supabaseClient.removeChannel(realtimeChannel);
+    realtimeChannel = supabaseClient.channel('fireins-shared-data')
+      .on('postgres_changes', {event:'*', schema:'public', table:'fire_insurance_policies'}, () => refreshCloudCollection('fire_insurance_policies', 'policies'))
+      .on('postgres_changes', {event:'*', schema:'public', table:'fire_insurance_notices'}, () => refreshCloudCollection('fire_insurance_notices', 'notices'))
+      .subscribe((status)=>{
+        if(status==='CHANNEL_ERROR' || status==='TIMED_OUT'){
+          const badge = document.getElementById('offlineBadge');
+          badge.textContent = 'ฐานข้อมูลออนไลน์ขัดข้อง';
+          badge.classList.remove('hidden');
+        }
+      });
+    renderCurrentView();
+    return;
+  }
+
+  if(dbNS){
+    document.getElementById('offlineBadge').classList.add('hidden');
+    subscribeCollection('policies', docs => { policies = docs; renderCurrentView(); });
+    subscribeCollection('notices', docs => { notices = docs; renderSyncedCollection('notices'); });
+  } else {
+    offlineMode = true;
+    document.getElementById('offlineBadge').textContent = 'ข้อมูลบันทึกในเบราว์เซอร์นี้เท่านั้น';
+    document.getElementById('offlineBadge').classList.remove('hidden');
+    loadOffline();
+    renderCurrentView();
+  }
+}
+async function syncUserManagementAccess(){
+  const navItem = byId('userManagementNav');
+  if(!navItem || !supabaseClient) return;
+  try{
+    const {data:userResult} = await supabaseClient.auth.getUser();
+    if(userResult?.user?.email) byId('userChip').textContent = '👤 ' + userResult.user.email;
+    const {data, error} = await supabaseClient.functions.invoke('manage-users', {body:{action:'check'}});
+    canManageUsers = !error && data?.isAdmin === true;
+    currentUserRole = data?.role || (canManageUsers ? 'admin' : 'staff');
+    navItem.classList.toggle('hidden', !canManageUsers);
+  }catch(error){
+    canManageUsers = false;
+    currentUserRole = 'staff';
+    navItem.classList.add('hidden');
+    console.warn('ตรวจสอบสิทธิ์จัดการบัญชีไม่สำเร็จ', error);
+  }
+}
+async function refreshCloudCollection(table, target){
+  const {data, error} = await supabaseClient.from(table).select('id,data');
+  if(error){
+    console.error(`โหลด ${table} ไม่สำเร็จ`, error);
+    const badge = document.getElementById('offlineBadge');
+    badge.textContent = 'โหลดฐานข้อมูลไม่สำเร็จ';
+    badge.classList.remove('hidden');
+    return;
+  }
+  const docs = (data || []).map(row => ({id:row.id, ...(row.data || {})}));
+  if(target==='policies') policies = docs;
+  else notices = docs;
+  renderSyncedCollection(target);
+}
+function renderSyncedCollection(name){
+  if(name==='notices' && currentView==='notices' && activeNoticeDraft){ renderNoticeList(); return; }
+  renderCurrentView();
+}
+function subscribeCollection(name, cb){
+  try{
+    dbNS.collection(name).onSnapshot(
+      snap => cb(snap.docs.map(d => ({id:d.id, ...(d.data()||{})}))),
+      err => { console.error(name, err); if(!offlineMode){ offlineMode=true; document.getElementById('offlineBadge').classList.remove('hidden'); loadOffline(); renderCurrentView(); } }
+    );
+  }catch(e){ console.error(e); }
+}
+
+async function savePolicy(id, data){
+  if(supabaseClient){
+    const recordId = id || uid();
+    const {error} = await supabaseClient.from('fire_insurance_policies').upsert({id:recordId, data}).select('id').single();
+    if(error) throw error;
+    const index = policies.findIndex(p=>p.id===recordId);
+    if(index>-1) policies[index] = {id:recordId, ...data};
+    else policies.push({id:recordId, ...data});
+    renderCurrentView();
+    return recordId;
+  }
+  if(dbNS && !offlineMode){
+    if(id){ await dbNS.collection('policies').doc(id).set(data); return id; }
+    const ref = await dbNS.collection('policies').add(data); return ref.id;
+  }
+  if(id){ const idx = policies.findIndex(p=>p.id===id); if(idx>-1) policies[idx] = {id, ...data}; }
+  else { id = uid(); policies.push({id, ...data}); }
+  saveOfflinePolicies(); renderCurrentView(); return id;
+}
+async function deletePolicy(id){
+  if(supabaseClient){
+    const {error} = await supabaseClient.from('fire_insurance_policies').delete().eq('id', id);
+    if(error) throw error;
+    policies = policies.filter(p=>p.id!==id); renderCurrentView(); return;
+  }
+  if(dbNS && !offlineMode){ await dbNS.collection('policies').doc(id).delete(); return; }
+  policies = policies.filter(p=>p.id!==id); saveOfflinePolicies(); renderCurrentView();
+}
+async function saveNotice(id, data){
+  if(supabaseClient){
+    const recordId = id || uid();
+    const {error} = await supabaseClient.from('fire_insurance_notices').upsert({id:recordId, data}).select('id').single();
+    if(error) throw error;
+    const index = notices.findIndex(n=>n.id===recordId);
+    if(index>-1) notices[index] = {id:recordId, ...data};
+    else notices.push({id:recordId, ...data});
+    renderSyncedCollection('notices');
+    return recordId;
+  }
+  if(dbNS && !offlineMode){
+    if(id){ await dbNS.collection('notices').doc(id).set(data); return id; }
+    const ref = await dbNS.collection('notices').add(data); return ref.id;
+  }
+  if(id){ const idx = notices.findIndex(n=>n.id===id); if(idx>-1) notices[idx] = {id, ...data}; }
+  else { id = uid(); notices.push({id, ...data}); }
+  saveOfflineNotices(); renderSyncedCollection('notices'); return id;
+}
+async function deleteNotice(id){
+  if(supabaseClient){
+    const {error} = await supabaseClient.from('fire_insurance_notices').delete().eq('id', id);
+    if(error) throw error;
+    notices = notices.filter(n=>n.id!==id); renderCurrentView(); return;
+  }
+  if(dbNS && !offlineMode){ await dbNS.collection('notices').doc(id).delete(); return; }
+  notices = notices.filter(n=>n.id!==id); saveOfflineNotices(); renderCurrentView();
+}
+
+// ---------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------
+async function checkAuth(){
+  if(supabaseConfigured){
+    if(!supabaseClient){ showLogin(); document.getElementById('loginError').textContent='โหลด Supabase ไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'; document.getElementById('loginError').style.display='block'; return; }
+    const {data, error} = await supabaseClient.auth.getSession();
+    if(error){ showLogin(); return; }
+    if(data.session) showApp(); else showLogin();
+    return;
+  }
+  if(sessionStorage.getItem(AUTH_KEY)==='1'){ showApp(); } else { showLogin(); }
+}
+function showLogin(){ document.getElementById('loginScreen').style.display='grid'; document.getElementById('appScreen').style.display='none'; }
+function showApp(){ document.getElementById('loginScreen').style.display='none'; document.getElementById('appScreen').style.display='block'; initData(); }
+document.getElementById('loginForm').addEventListener('submit', async function(e){
+  e.preventDefault();
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginError');
+  if(supabaseConfigured){
+    if(!supabaseClient){ errEl.textContent='เชื่อมต่อ Supabase ไม่สำเร็จ'; errEl.style.display='block'; return; }
+    const {error} = await supabaseClient.auth.signInWithPassword({email:u, password:p});
+    if(error){ errEl.textContent='อีเมลหรือรหัสผ่านไม่ถูกต้อง'; errEl.style.display='block'; return; }
+    errEl.style.display='none'; showApp(); return;
+  }
+  errEl.textContent='ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+  if(u===VALID_USER && p===VALID_PASS){ errEl.style.display='none'; sessionStorage.setItem(AUTH_KEY,'1'); showApp(); }
+  else{ errEl.style.display='block'; }
+});
+document.getElementById('logoutBtn').addEventListener('click', async function(){
+  if(supabaseClient) await supabaseClient.auth.signOut();
+  sessionStorage.removeItem(AUTH_KEY); showLogin();
+});
+document.getElementById('togglePassBtn').addEventListener('click', function(){
+  const inp = document.getElementById('loginPass');
+  const showing = inp.type === 'text';
+  inp.type = showing ? 'password' : 'text';
+  this.textContent = showing ? '👁' : '🙈';
+  this.setAttribute('aria-label', showing ? 'แสดงรหัสผ่าน' : 'ซ่อนรหัสผ่าน');
+});
+
+// ---------------------------------------------------------------
+// Navigation
+// ---------------------------------------------------------------
+document.querySelectorAll('.nav-item[data-view]').forEach(btn=>{ btn.addEventListener('click', ()=> setView(btn.dataset.view)); });
+function setView(v){
+  currentView = v;
+  document.querySelectorAll('.nav-item[data-view]').forEach(b=> b.classList.toggle('active', b.dataset.view===v));
+  const titles = {
+    dashboard:['แดชบอร์ด','ภาพรวมกรมธรรม์และกำหนดต่ออายุ'],
+    policies:['กรมธรรม์ทั้งหมด','จัดการรายการกรมธรรม์ประกันอัคคีภัย'],
+    notices:['ใบเตือนต่ออายุ','สร้าง ดาวน์โหลด PDF และส่งอีเมลใบเตือนต่ออายุ'],
+    reports:['รายงาน Excel','ดาวน์โหลดข้อมูลกรมธรรม์และใบเตือนเป็นไฟล์ Excel'],
+    users:['บัญชีผู้ใช้','จัดการบัญชีเจ้าหน้าที่'],
+  };
+  document.getElementById('topbarTitle').textContent = titles[v][0];
+  document.getElementById('topbarDesc').textContent = titles[v][1];
+  activeNoticeDraft = null;
+  renderCurrentView();
+}
+function renderCurrentView(){
+  updateNavBadge();
+  if(currentView==='dashboard') renderDashboard();
+  else if(currentView==='policies') renderPolicies();
+  else if(currentView==='notices') renderNotices();
+  else if(currentView==='reports') renderReports();
+  else if(currentView==='users') renderUserManagement();
+}
+function updateNavBadge(){
+  const nearCount = policies.filter(p=> policyStatus(p).key==='near').length;
+  const el = document.getElementById('navPolicyCount');
+  if(nearCount>0){ el.textContent = nearCount; el.classList.remove('hidden'); } else { el.classList.add('hidden'); }
+}
+
+// ---------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------
+function renderDashboard(){
+  const content = document.getElementById('content');
+  const total = policies.length;
+  const near = policies.filter(p=>policyStatus(p).key==='near');
+  const expired = policies.filter(p=>policyStatus(p).key==='expired');
+  const pendingPay = policies.filter(p=>p.paymentStatus==='รอชำระ' || p.paymentStatus==='ค้างชำระ');
+  const pendingAmount = pendingPay.reduce((s,p)=> s + (Number(p.premium)||0), 0);
+  const urgent = [...near, ...expired].sort((a,b)=> (daysUntil(a.endDate)??9999) - (daysUntil(b.endDate)??9999)).slice(0,8);
+
+  content.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card accent-primary"><div class="stat-card-head"><div class="label">กรมธรรม์ทั้งหมด</div><span class="stat-icon" aria-hidden="true">▤</span></div><div class="value">${total}</div><div class="sub">รายการที่บันทึกในระบบ</div></div>
+      <div class="stat-card accent-amber"><div class="stat-card-head"><div class="label">ใกล้ครบกำหนด (≤30 วัน)</div><span class="stat-icon" aria-hidden="true">◷</span></div><div class="value">${near.length}</div><div class="sub">ควรออกใบเตือนต่ออายุ</div></div>
+      <div class="stat-card accent-danger"><div class="stat-card-head"><div class="label">หมดอายุแล้ว</div><span class="stat-icon" aria-hidden="true">!</span></div><div class="value">${expired.length}</div><div class="sub">เลยกำหนดความคุ้มครอง</div></div>
+      <div class="stat-card accent-success"><div class="stat-card-head"><div class="label">เบี้ยรอ/ค้างชำระ</div><span class="stat-icon" aria-hidden="true">฿</span></div><div class="value" style="font-size:20px;">${formatBaht(pendingAmount)}</div><div class="sub">${pendingPay.length} กรมธรรม์</div></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>รายการที่ต้องติดตาม</h3><div class="desc">เรียงตามความเร่งด่วน — ใกล้ครบกำหนดหรือหมดอายุแล้ว</div></div>
+        <button class="btn btn-ghost btn-sm" id="dashViewAllBtn">ดูกรมธรรม์ทั้งหมด</button>
+      </div>
+      <div class="panel-body" id="urgentList"></div>
+    </div>`;
+  document.getElementById('dashViewAllBtn').addEventListener('click', ()=> setView('policies'));
+  const listEl = document.getElementById('urgentList');
+  if(urgent.length===0){
+    listEl.innerHTML = `<div class="empty-state"><div class="big">✅</div><div class="msg">ไม่มีกรมธรรม์ที่ใกล้ครบกำหนดหรือหมดอายุในขณะนี้</div></div>`;
+  } else {
+    listEl.innerHTML = urgent.map(p=>{
+      const st = policyStatus(p);
+      const dotColor = st.key==='expired' ? 'var(--c-danger)' : 'var(--c-amber)';
+      return `<div class="alert-row">
+        <span class="alert-dot" style="background:${dotColor};"></span>
+        <div><div class="who">${escapeHtml(p.insuredName||'—')}</div><div class="meta">${escapeHtml(p.policyNumber||'—')} · ครบกำหนด ${formatThaiDate(p.endDate)}</div></div>
+        <span class="spacer"></span>
+        <span class="badge ${st.badge}">${st.label}</span>
+        <button class="btn btn-primary btn-sm" data-mknotice="${p.id}">สร้างใบเตือน</button>
+      </div>`;
+    }).join('');
+    listEl.querySelectorAll('[data-mknotice]').forEach(btn=>{ btn.addEventListener('click', ()=> { setView('notices'); openNoticeDraftFromPolicy(btn.dataset.mknotice); }); });
+  }
+}
+
+// ---------------------------------------------------------------
+// Policies view
+// ---------------------------------------------------------------
+function renderPolicies(){
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>ทะเบียนกรมธรรม์</h3><div class="desc">${policies.length.toLocaleString('th-TH')} รายการ</div></div>
+      </div>
+      <div class="table-toolbar">
+        <input type="search" id="policySearchInput" placeholder="ค้นหาเลขที่กรมธรรม์ หรือชื่อผู้เอาประกัน...">
+        <select id="policyFilterSelect">
+          <option value="all">สถานะทั้งหมด</option><option value="near">ใกล้ครบกำหนด</option><option value="expired">หมดอายุแล้ว</option><option value="ok">ปกติ</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" data-sample-btn id="toolbarSampleBtn">+ ข้อมูลตัวอย่าง 100 รายการ</button>
+      </div>
+      <div class="table-wrap" id="policyTableWrap"></div>
+    </div>`;
+  const searchInput = document.getElementById('policySearchInput');
+  searchInput.value = policySearch;
+  searchInput.addEventListener('input', ()=>{ policySearch = searchInput.value; renderPolicyTable(); });
+  const filterSelect = document.getElementById('policyFilterSelect');
+  filterSelect.value = policyFilter;
+  filterSelect.addEventListener('change', ()=>{ policyFilter = filterSelect.value; renderPolicyTable(); });
+  document.getElementById('toolbarSampleBtn').addEventListener('click', ()=> loadSampleData(100));
+  renderPolicyTable();
+}
+function renderPolicyTable(){
+  const wrap = document.getElementById('policyTableWrap');
+  let rows = policies.slice();
+  if(policySearch.trim()){
+    const q = policySearch.trim().toLowerCase();
+    rows = rows.filter(p => [p.policyNumber, p.insuredName, p.idNumber].some(v=> (v||'').toLowerCase().includes(q)));
+  }
+  if(policyFilter!=='all'){ rows = rows.filter(p => policyStatus(p).key===policyFilter); }
+  rows.sort((a,b)=> (daysUntil(a.endDate)??99999) - (daysUntil(b.endDate)??99999));
+
+  if(policies.length===0){
+    wrap.innerHTML = `<div class="empty-state"><div class="big">📄</div><div class="msg">ยังไม่มีกรมธรรม์ในระบบ เริ่มเพิ่มกรมธรรม์แรกของคุณ</div>
+      <button class="btn btn-primary btn-sm" id="emptyAddBtn">+ เพิ่มกรมธรรม์</button>&nbsp;
+      <button class="btn btn-ghost btn-sm" data-sample-btn id="emptySampleBtn">โหลดข้อมูลตัวอย่าง 100 รายการ</button></div>`;
+    document.getElementById('emptyAddBtn').addEventListener('click', ()=> openPolicyModal(null));
+    document.getElementById('emptySampleBtn').addEventListener('click', ()=> loadSampleData(100));
+    return;
+  }
+  if(rows.length===0){ wrap.innerHTML = `<div class="empty-state"><div class="big">🔍</div><div class="msg">ไม่พบกรมธรรม์ที่ตรงกับเงื่อนไขการค้นหา</div></div>`; return; }
+
+  wrap.innerHTML = `<table>
+    <thead><tr><th>เลขที่กรมธรรม์</th><th>ผู้เอาประกันภัย</th><th>ครบกำหนด</th><th>สถานะ</th><th>การชำระเงิน</th><th>ทุนประกัน</th><th>เบี้ยรวม</th><th></th></tr></thead>
+    <tbody>${rows.map(p=>{
+      const st = policyStatus(p);
+      return `<tr>
+        <td class="cell-strong">${escapeHtml(p.policyNumber||'—')}</td>
+        <td>${escapeHtml(p.insuredName||'—')}<div class="cell-soft">${escapeHtml(p.policyType||'')}</div></td>
+        <td>${formatThaiDate(p.endDate)}</td>
+        <td><span class="badge ${st.badge}">${st.label}</span></td>
+        <td><span class="badge ${paymentBadge(p.paymentStatus)}">${escapeHtml(p.paymentStatus||'—')}</span></td>
+        <td>${formatBaht(p.sumInsured)}</td>
+        <td>${formatBaht(p.premium)}</td>
+        <td><div class="row-actions">
+          <button class="icon-btn" data-notice="${p.id}" title="สร้างใบเตือน">✉️</button>
+          <button class="icon-btn" data-edit="${p.id}" title="แก้ไข">✎</button>
+          ${canManageUsers ? `<button class="icon-btn danger" data-del="${p.id}" title="ลบ">🗑</button>` : ''}
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+  wrap.querySelectorAll('[data-edit]').forEach(b=> b.addEventListener('click', ()=> openPolicyModal(b.dataset.edit)));
+  wrap.querySelectorAll('[data-del]').forEach(b=> b.addEventListener('click', ()=> confirmDeletePolicy(b.dataset.del)));
+  wrap.querySelectorAll('[data-notice]').forEach(b=> b.addEventListener('click', ()=> { setView('notices'); openNoticeDraftFromPolicy(b.dataset.notice); }));
+}
+function confirmDeletePolicy(id){
+  const p = policies.find(x=>x.id===id); if(!p) return;
+  if(confirm(`ลบกรมธรรม์ "${p.policyNumber||''}" ของ ${p.insuredName||''} ใช่หรือไม่?`)) deletePolicy(id);
+}
+
+// ---------------------------------------------------------------
+// Sample data generator
+// ---------------------------------------------------------------
+function shiftDate(days){ const d = new Date(); d.setDate(d.getDate()+days); return d.toISOString().slice(0,10); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+function pad(n,len){ return String(n).padStart(len,'0'); }
+
+const SAMPLE_MALE = ['สมชาย','สมศักดิ์','วิชัย','ประเสริฐ','อนุชา','ธนกร','กิตติ','ชัยวัฒน์','พิพัฒน์','ณัฐพล','สุรชัย','วีระ','ปิยะ','เอกชัย','ไพโรจน์','มนตรี','สมบัติ','ยุทธนา','ศักดิ์ชัย','ธีรพงษ์','อดิศักดิ์','จักรพันธ์','ภาณุวัฒน์','สมพงษ์','วรวุฒิ'];
+const SAMPLE_FEMALE = ['สมหญิง','วรรณา','สุพรรณี','กัญญา','พิมพ์ชนก','นภาพร','ศิริพร','อรุณี','จิราภรณ์','สุนิสา','ปวีณา','รัตนา','ธิดารัตน์','กมลวรรณ','มาลี','วิภาวรรณ','นันทนา','อัญชลี','ปาริชาต','สุกัญญา','พรทิพย์','อรอุมา','ชุติมา','เบญจวรรณ','ศศิธร'];
+const SAMPLE_LAST = ['ใจดี','รักไทย','มั่นคง','ศรีสุข','วัฒนกุล','เจริญพร','สุขเกษม','ทองดี','แสงทอง','บุญมา','พงษ์ไพศาล','ศรีวิไล','ธนากร','ชัยประเสริฐ','รุ่งเรือง','กิตติวงศ์','เพชรรัตน์','สินธุพันธ์','มีสุข','ปัญญาดี','วงศ์สุวรรณ','จันทร์เพ็ญ','ทรัพย์สมบูรณ์','แก้วมณี','ศรีประเสริฐ'];
+const SAMPLE_COMPANY = ['บจก. รุ่งเรืองพาณิชย์','บจก. ไทยพัฒนาอุตสาหกรรม','บจก. เอเชียโลจิสติกส์','บจก. สยามค้าส่ง','บจก. เจริญทรัพย์กรุ๊ป','บจก. โกลบอลเทรดดิ้ง','บจก. ยูไนเต็ดแมนูแฟคเจอริ่ง','บจก. เอสเอ็มอีคอมเมิร์ซ','บจก. แพนแปซิฟิก อุตสาหกรรม','บจก. กรุงเทพวิศวกรรม','หจก. บางกอกซัพพลาย','หจก. เมืองทองก่อสร้าง','บจก. นอร์ทอีสเทิร์นฟู้ดส์','บจก. เมโทรแพ็คเกจจิ้ง','บจก. สยามอินเตอร์เทรด','บจก. ไฮเทคอิเล็กทรอนิกส์','บจก. ทองไทยพลาสติก','บจก. เวิลด์ไวด์ชิปปิ้ง','บจก. เซ็นทรัลวัสดุก่อสร้าง','บจก. ยูเนี่ยนเท็กซ์ไทล์'];
+const SAMPLE_BANKS = ['ธ.กรุงเทพ สาขาสีลม','ธ.กสิกรไทย สาขาอโศก','ธ.ไทยพาณิชย์ สาขาบางนา','ธ.กรุงไทย สาขาลาดพร้าว','ธ.กรุงศรีอยุธยา สาขาพระราม 9','ธ.ทหารไทยธนชาต สาขารัชดา'];
+const SAMPLE_STREETS = ['ถ.สุขุมวิท','ถ.พระราม 9','ถ.ลาดพร้าว','ถ.เพชรบุรีตัดใหม่','ถ.รัชดาภิเษก','ถ.บางนา-ตราด','ถ.แจ้งวัฒนะ','ถ.เจริญกรุง','ถ.สาทร','ถ.รามคำแหง'];
+const SAMPLE_AREAS = [
+  {sub:'แขวงคลองตัน เขตคลองเตย', prov:'กรุงเทพฯ', zip:'10110'}, {sub:'แขวงบางนา เขตบางนา', prov:'กรุงเทพฯ', zip:'10260'},
+  {sub:'แขวงห้วยขวาง เขตห้วยขวาง', prov:'กรุงเทพฯ', zip:'10310'}, {sub:'ตำบลบางพลีใหญ่ อำเภอบางพลี', prov:'สมุทรปราการ', zip:'10540'},
+  {sub:'ตำบลบางแก้ว อำเภอเมือง', prov:'สมุทรปราการ', zip:'10270'}, {sub:'ตำบลสุรศักดิ์ อำเภอศรีราชา', prov:'ชลบุรี', zip:'20110'},
+  {sub:'ตำบลบ้านสวน อำเภอเมือง', prov:'ชลบุรี', zip:'20000'}, {sub:'ตำบลบางกระสั้น อำเภอบางปะอิน', prov:'พระนครศรีอยุธยา', zip:'13160'},
+  {sub:'ตำบลสันทราย อำเภอสันทราย', prov:'เชียงใหม่', zip:'50210'}, {sub:'ตำบลในเมือง อำเภอเมือง', prov:'ขอนแก่น', zip:'40000'},
+];
+const POLICY_TYPES = ['ที่อยู่อาศัย','อาคารพาณิชย์','โรงงานอุตสาหกรรม','คลังสินค้า','อื่นๆ'];
+function sumInsuredRange(type){
+  switch(type){
+    case 'ที่อยู่อาศัย': return [800000, 5000000];
+    case 'อาคารพาณิชย์': return [3000000, 15000000];
+    case 'โรงงานอุตสาหกรรม': return [10000000, 80000000];
+    case 'คลังสินค้า': return [5000000, 30000000];
+    default: return [1000000, 10000000];
+  }
+}
+function generateOnePolicy(i){
+  const isCompany = Math.random() < 0.4;
+  const policyType = pick(POLICY_TYPES);
+  const [minSum, maxSum] = sumInsuredRange(policyType);
+  const sumInsured = Math.round(randInt(minSum, maxSum)/10000)*10000;
+  const premiumRate = Math.round(DEFAULT_RATE[policyType] * (randInt(80,130)/100) * 100)/100;
+  const netPremium = calcNet(sumInsured, premiumRate);
+  const vatAmount = calcVat(netPremium);
+  const dutyAmount = calcDuty(netPremium);
+  const premium = netPremium + vatAmount + dutyAmount;
+
+  const roll = Math.random();
+  let endOffset;
+  if(roll < 0.15) endOffset = -randInt(1,60);
+  else if(roll < 0.35) endOffset = randInt(1,30);
+  else endOffset = randInt(31,320);
+  const endDate = shiftDate(endOffset);
+  const startDate = shiftDate(endOffset-365);
+
+  let paymentStatus;
+  if(endOffset < 0) paymentStatus = pick(['ค้างชำระ','ค้างชำระ','ชำระแล้ว']);
+  else if(endOffset <= 30) paymentStatus = pick(['รอชำระ','รอชำระ','ค้างชำระ','ชำระแล้ว']);
+  else paymentStatus = pick(['ชำระแล้ว','ชำระแล้ว','ชำระแล้ว','รอชำระ']);
+  const dueDate = endDate;
+  const paidDate = paymentStatus==='ชำระแล้ว' ? shiftDate(endOffset - randInt(370,400)) : '';
+
+  const area = pick(SAMPLE_AREAS);
+  const houseNo = randInt(1,299);
+  const address = `${houseNo}/${randInt(1,20)} ${pick(SAMPLE_STREETS)} ${area.sub} ${area.prov} ${area.zip}`;
+
+  let insuredName, idNumber, email;
+  if(isCompany){
+    insuredName = pick(SAMPLE_COMPANY);
+    idNumber = `0-${pad(randInt(1000,9999),4)}-${pad(randInt(10000,99999),5)}-${pad(randInt(10,99),2)}-${randInt(1,9)}`;
+    email = 'account@' + insuredName.replace(/บจก\.|หจก\.|\s/g,'').toLowerCase().slice(0,10) + '.co.th';
+  } else {
+    const isMale = Math.random() < 0.5;
+    const first = pick(isMale ? SAMPLE_MALE : SAMPLE_FEMALE);
+    const last = pick(SAMPLE_LAST);
+    insuredName = (isMale ? 'นาย' : 'นาง') + first + ' ' + last;
+    idNumber = `${randInt(1,3)}-${pad(randInt(1000,9999),4)}-${pad(randInt(10000,99999),5)}-${pad(randInt(10,99),2)}-${randInt(1,9)}`;
+    email = first.toLowerCase() + '.' + last.charAt(0).toLowerCase() + '@email.com';
+  }
+  const phonePrefix = pick(['081','082','085','086','089','090','091','092','095','098']);
+  const phone = `${phonePrefix}-${pad(randInt(0,999),3)}-${pad(randInt(0,9999),4)}`;
+  const bankInfo = `${pick(SAMPLE_BANKS)} เลขที่บัญชี ${randInt(100,999)}-${randInt(0,9)}-${pad(randInt(10000,99999),5)}-${randInt(0,9)} ชื่อบัญชี ${INSURER_TH}`;
+  const notes = Math.random() < 0.2 ? pick(['ติดต่อลูกค้าทางโทรศัพท์แล้ว','รอเอกสารเพิ่มเติมจากลูกค้า','ลูกค้าขอเลื่อนนัดชำระเงิน','แจ้งเตือนผ่านอีเมลแล้ว']) : '';
+
+  return {
+    policyNumber: `FIR-2569-${pad(1000+i,5)}`, insurerCompany: INSURER_TH, policyType,
+    sumInsured, premiumRate, netPremium, vatAmount, dutyAmount, premium,
+    startDate, endDate, insuredName, idNumber, address, phone, email,
+    paymentStatus, paymentMethod: pick(['โอนเงิน','โอนเงิน','เงินสด','บัตรเครดิต','เช็ค']),
+    dueDate, paidDate, bankInfo, notes,
+  };
+}
+async function loadSampleData(count){
+  count = count || 100;
+  const btns = document.querySelectorAll('[data-sample-btn]');
+  btns.forEach(b=>{ b.disabled = true; b.textContent = 'กำลังสร้างข้อมูล...'; });
+  const batchSize = 8;
+  for(let start=0; start<count; start+=batchSize){
+    const chunk = [];
+    for(let i=start; i<Math.min(start+batchSize, count); i++){ chunk.push(savePolicy(null, generateOnePolicy(i))); }
+    await Promise.all(chunk);
+  }
+  renderCurrentView();
+}
+
+// ---------------------------------------------------------------
+// Policy modal (add/edit) with premium calculator + autosave
+// ---------------------------------------------------------------
+const policyModalOverlay = document.getElementById('policyModalOverlay');
+function wirePolicyPremiumCalc(){
+  const sumEl=byId('f_sumInsured'), rateEl=byId('f_premiumRate'), netEl=byId('f_netPremium'), vatEl=byId('f_vatAmount'), dutyEl=byId('f_dutyAmount'), totalEl=byId('f_premiumTotal');
+  function recalc(source){
+    if(source==='sum'||source==='rate'){ netEl.value = calcNet(sumEl.value, rateEl.value); }
+    vatEl.value = calcVat(netEl.value); dutyEl.value = calcDuty(netEl.value);
+    totalEl.value = (Number(netEl.value)||0)+(Number(vatEl.value)||0)+(Number(dutyEl.value)||0);
+  }
+  sumEl.oninput = ()=>recalc('sum');
+  rateEl.oninput = ()=>recalc('rate');
+  netEl.oninput = ()=>recalc('net');
+  byId('f_policyType').onchange = function(){
+    if(!rateEl.value || Number(rateEl.value)===0){ rateEl.value = DEFAULT_RATE[this.value]; }
+    recalc('rate');
+  };
+}
+function openPolicyModal(id){
+  clearTimeout(policyAutosaveTimer);
+  editingPolicyId = id;
+  const p = id ? policies.find(x=>x.id===id) : null;
+  document.getElementById('policyModalTitle').textContent = id ? 'แก้ไขกรมธรรม์' : 'เพิ่มกรมธรรม์ใหม่';
+  const set = (elId, val)=> document.getElementById(elId).value = (val===undefined||val===null) ? '' : val;
+  set('f_policyNumber', p?.policyNumber);
+  document.getElementById('f_policyType').value = p?.policyType || 'ที่อยู่อาศัย';
+  set('f_startDate', p?.startDate); set('f_endDate', p?.endDate);
+  set('f_sumInsured', p?.sumInsured);
+  set('f_premiumRate', p ? p.premiumRate : (DEFAULT_RATE[document.getElementById('f_policyType').value]));
+  set('f_netPremium', p?.netPremium); set('f_vatAmount', p?.vatAmount); set('f_dutyAmount', p?.dutyAmount); set('f_premiumTotal', p?.premium);
+  set('f_insuredName', p?.insuredName); set('f_idNumber', p?.idNumber); set('f_address', p?.address); set('f_phone', p?.phone); set('f_email', p?.email);
+  byId('f_emailReminderEnabled').checked = p?.emailReminderEnabled === true;
+  document.getElementById('f_paymentStatus').value = p?.paymentStatus || 'รอชำระ';
+  document.getElementById('f_paymentMethod').value = p?.paymentMethod || 'โอนเงิน';
+  set('f_dueDate', p?.dueDate); set('f_paidDate', p?.paidDate); set('f_bankInfo', p?.bankInfo); set('f_notes', p?.notes);
+  wirePolicyPremiumCalc();
+  document.getElementById('policyDeleteInModalBtn').classList.toggle('hidden', !id || !canManageUsers);
+  document.getElementById('policyAutosaveStatus').textContent = id ? 'แก้ไขแล้วจะบันทึกอัตโนมัติ' : 'เริ่มกรอกข้อมูลเพื่อบันทึกอัตโนมัติ';
+  document.getElementById('policyAutosaveStatus').classList.remove('ok');
+  policyModalOverlay.classList.add('open');
+}
+function closePolicyModal(){ policyModalOverlay.classList.remove('open'); editingPolicyId=null; }
+function collectPolicyFormData(){
+  const val = id => document.getElementById(id).value.trim();
+  const num = id => Number(document.getElementById(id).value)||0;
+  return {
+    policyNumber: val('f_policyNumber'), insurerCompany: INSURER_TH, policyType: document.getElementById('f_policyType').value,
+    sumInsured: num('f_sumInsured'), premiumRate: num('f_premiumRate'), netPremium: num('f_netPremium'),
+    vatAmount: num('f_vatAmount'), dutyAmount: num('f_dutyAmount'), premium: num('f_premiumTotal'),
+    startDate: val('f_startDate'), endDate: val('f_endDate'),
+    insuredName: val('f_insuredName'), idNumber: val('f_idNumber'), address: val('f_address'), phone: val('f_phone'), email: val('f_email'),
+    paymentStatus: document.getElementById('f_paymentStatus').value, paymentMethod: document.getElementById('f_paymentMethod').value,
+    dueDate: val('f_dueDate'), paidDate: val('f_paidDate'), bankInfo: val('f_bankInfo'), notes: val('f_notes'),
+    emailReminderEnabled: byId('f_emailReminderEnabled').checked,
+    updatedAt: new Date().toISOString(),
+  };
+}
+function isPolicyFormValid(){
+  return byId('f_policyNumber').value.trim() && byId('f_insuredName').value.trim() && byId('f_startDate').value && byId('f_endDate').value && Number(byId('f_sumInsured').value)>0;
+}
+async function flushPolicyAutosave(){
+  const statusEl = document.getElementById('policyAutosaveStatus');
+  if(!isPolicyFormValid()){ statusEl.textContent = 'กรอกเลขที่กรมธรรม์ ชื่อผู้เอาประกัน ทุนประกัน และวันที่ให้ครบ เพื่อบันทึกอัตโนมัติ'; statusEl.classList.remove('ok'); return; }
+  const data = collectPolicyFormData();
+  const savedId = await savePolicy(editingPolicyId, data);
+  if(!editingPolicyId && savedId){ editingPolicyId = savedId; document.getElementById('policyDeleteInModalBtn').classList.toggle('hidden', !canManageUsers); }
+  statusEl.textContent = 'บันทึกอัตโนมัติแล้ว ✓ ' + nowTimeStr();
+  statusEl.classList.add('ok');
+}
+function scheduleAutosavePolicy(){
+  const statusEl = document.getElementById('policyAutosaveStatus');
+  statusEl.classList.remove('ok'); statusEl.textContent = 'กำลังพิมพ์...';
+  clearTimeout(policyAutosaveTimer);
+  policyAutosaveTimer = setTimeout(flushPolicyAutosave, 800);
+}
+document.getElementById('policyForm').addEventListener('input', scheduleAutosavePolicy);
+document.getElementById('policyForm').addEventListener('change', scheduleAutosavePolicy);
+document.getElementById('policyModalClose').addEventListener('click', async ()=>{ clearTimeout(policyAutosaveTimer); await flushPolicyAutosave(); closePolicyModal(); });
+document.getElementById('policyDoneBtn').addEventListener('click', async ()=>{ clearTimeout(policyAutosaveTimer); await flushPolicyAutosave(); closePolicyModal(); });
+document.getElementById('policyDeleteInModalBtn').addEventListener('click', async ()=>{
+  if(editingPolicyId && confirm('ลบกรมธรรม์นี้ใช่หรือไม่?')){ clearTimeout(policyAutosaveTimer); await deletePolicy(editingPolicyId); editingPolicyId=null; closePolicyModal(); }
+});
+document.getElementById('topAddPolicyBtn').addEventListener('click', ()=> openPolicyModal(null));
+policyModalOverlay.addEventListener('click', (e)=>{ if(e.target===policyModalOverlay){ clearTimeout(policyAutosaveTimer); flushPolicyAutosave().then(closePolicyModal); } });
+
+// ---------------------------------------------------------------
+// Notices view
+// ---------------------------------------------------------------
+function renderNotices(){
+  const content = document.getElementById('content');
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>ใบเตือนที่บันทึกไว้</h3><div class="desc">รายการใบเตือนต่ออายุทั้งหมด แก้ไข ดาวน์โหลด PDF หรือส่งอีเมลได้ทุกเมื่อ</div></div>
+        <button class="btn btn-primary btn-sm" id="newNoticeBtn">+ สร้างใบเตือนใหม่</button>
+      </div>
+      <div class="panel-body" id="noticeListArea"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h3>ประวัติการส่งอีเมล</h3><div class="desc">รายการส่งล่าสุดสูงสุด 50 ครั้ง</div></div><button class="btn btn-ghost btn-sm" id="refreshEmailHistoryBtn">รีเฟรช</button></div>
+      <div class="table-wrap" id="emailHistoryArea"><div class="cell-soft">กำลังโหลดประวัติ...</div></div>
+    </div>
+    <div id="noticeEditorArea"></div>`;
+  document.getElementById('newNoticeBtn').addEventListener('click', ()=> openNoticeDraftFromPolicy(null));
+  document.getElementById('refreshEmailHistoryBtn').addEventListener('click', loadEmailHistory);
+  renderNoticeList();
+  loadEmailHistory();
+  if(activeNoticeDraft){ renderNoticeEditor(); }
+}
+function renderNoticeList(){
+  const el = document.getElementById('noticeListArea');
+  if(notices.length===0){ el.innerHTML = `<div class="empty-state"><div class="big">✉️</div><div class="msg">ยังไม่มีใบเตือนที่บันทึกไว้ เริ่มสร้างใบเตือนฉบับแรก</div></div>`; return; }
+  const sorted = notices.slice().sort((a,b)=> (b.issueDate||'').localeCompare(a.issueDate||''));
+  el.innerHTML = sorted.map(n=>`
+    <div class="notice-list-row">
+      <div style="flex:1;"><div class="cell-strong">${escapeHtml(n.recipientName||'—')} <span class="cell-soft">· ${escapeHtml(n.policyNumber||'—')}</span></div>
+      <div class="cell-soft">ครบกำหนด ${formatThaiDate(n.expiryDate)} · ออกใบเตือนเมื่อ ${n.issueDate ? formatThaiDate(n.issueDate) : '—'}</div></div>
+      <span class="badge ${n.status==='ส่งแล้ว' ? 'badge-success':'badge-neutral'}">${escapeHtml(n.status||'ร่าง')}</span>
+      <div class="row-actions"><button class="icon-btn" data-nedit="${n.id}" title="แก้ไข">✎</button>${canManageUsers ? `<button class="icon-btn danger" data-ndel="${n.id}" title="ลบ">🗑</button>` : ''}</div>
+    </div>`).join('');
+  el.querySelectorAll('[data-nedit]').forEach(b=> b.addEventListener('click', ()=> openNoticeForEdit(b.dataset.nedit)));
+  el.querySelectorAll('[data-ndel]').forEach(b=> b.addEventListener('click', ()=>{ if(confirm('ลบใบเตือนนี้ใช่หรือไม่?')) deleteNotice(b.dataset.ndel); }));
+}
+async function loadEmailHistory(){
+  const area = document.getElementById('emailHistoryArea');
+  if(!area) return;
+  if(!supabaseClient){ area.innerHTML='<div class="empty-state">ประวัติการส่งใช้ได้เมื่อเชื่อมฐานข้อมูลออนไลน์</div>'; return; }
+  area.innerHTML='<div class="cell-soft" style="padding:14px 0;">กำลังโหลดประวัติ...</div>';
+  const {data,error} = await supabaseClient.from('email_send_logs')
+    .select('id,recipient_email,policy_number,language,send_type,days_before,status,error_message,created_at,sent_at')
+    .order('created_at',{ascending:false}).limit(50);
+  if(error){
+    console.error('โหลดประวัติอีเมลไม่สำเร็จ',error);
+    area.innerHTML='<div class="empty-state">โหลดประวัติไม่ได้ กรุณาตรวจสอบว่าได้รัน supabase-workflow-upgrade.sql แล้ว</div>';
+    return;
+  }
+  if(!data?.length){ area.innerHTML='<div class="empty-state">ยังไม่มีประวัติการส่งอีเมล</div>'; return; }
+  const statusText = {sent:'ส่งแล้ว',failed:'ไม่สำเร็จ',pending:'กำลังส่ง'};
+  const statusClass = {sent:'badge-success',failed:'badge-danger',pending:'badge-amber'};
+  area.innerHTML=`<table><thead><tr><th>วันเวลา</th><th>ผู้รับ</th><th>กรมธรรม์</th><th>ชนิด</th><th>ภาษา</th><th>สถานะ</th><th>รายละเอียด</th></tr></thead><tbody>${data.map(log=>{
+    const kind=log.send_type==='scheduled'?`เตือนล่วงหน้า ${log.days_before||''} วัน`:'ส่งเอง';
+    const language=log.language==='en'?'English':'ไทย';
+    const detail=log.status==='failed'?(log.error_message||'ส่งไม่สำเร็จ'):(log.sent_at?new Date(log.sent_at).toLocaleString('th-TH'):'—');
+    return `<tr><td>${escapeHtml(new Date(log.created_at).toLocaleString('th-TH'))}</td><td>${escapeHtml(log.recipient_email||'—')}</td><td>${escapeHtml(log.policy_number||'—')}</td><td>${escapeHtml(kind)}</td><td>${language}</td><td><span class="badge ${statusClass[log.status]||'badge-neutral'}">${statusText[log.status]||escapeHtml(log.status)}</span></td><td>${escapeHtml(detail)}</td></tr>`;
+  }).join('')}</tbody></table>`;
+}
+function openNoticeForEdit(id){
+  const n = notices.find(x=>x.id===id); if(!n) return;
+  activeNoticeDraft = {...n}; renderNoticeEditor(); scrollToEditor();
+}
+function openNoticeDraftFromPolicy(policyId){
+  const p = policyId ? policies.find(x=>x.id===policyId) : null;
+  const today = new Date().toISOString().slice(0,10);
+  activeNoticeDraft = {
+    id:null, policyId: p ? p.id : '', noticeNumber: 'RN-' + Date.now().toString().slice(-8), issueDate: today,
+    recipientName: p ? p.insuredName : '', recipientAddress: p ? p.address : '', recipientEmail: p ? p.email : '',
+    policyNumber: p ? p.policyNumber : '', policyType: p ? p.policyType : 'ที่อยู่อาศัย',
+    sumInsured: p ? p.sumInsured : '', premiumRate: p ? p.premiumRate : '', netPremium: p ? p.netPremium : '',
+    vatAmount: p ? p.vatAmount : '', dutyAmount: p ? p.dutyAmount : '', premium: p ? p.premium : '',
+    expiryDate: p ? p.endDate : '', paymentDueDate: p ? (p.dueDate||p.endDate) : '', bankInfo: p ? p.bankInfo : '',
+    customMessage: '', status: 'ร่าง', createdAt: new Date().toISOString(),
+  };
+  if(currentView!=='notices'){ setView('notices'); }
+  renderNoticeEditor(); scrollToEditor();
+}
+function scrollToEditor(){ setTimeout(()=>{ const e=document.getElementById('noticeEditorArea'); if(e) e.scrollIntoView({behavior:'smooth', block:'start'}); }, 30); }
+
+function scheduleAutosaveNotice(){
+  const statusEl = document.getElementById('noticeAutosaveStatus');
+  if(statusEl){ statusEl.classList.remove('ok'); statusEl.textContent = 'กำลังพิมพ์...'; }
+  clearTimeout(noticeAutosaveTimer);
+  noticeAutosaveTimer = setTimeout(flushNoticeAutosave, 800);
+}
+async function flushNoticeAutosave(){
+  const statusEl = document.getElementById('noticeAutosaveStatus');
+  if(!activeNoticeDraft) return;
+  const d = activeNoticeDraft;
+  if(!(d.recipientName && d.policyNumber && d.expiryDate)){
+    if(statusEl){ statusEl.textContent = 'กรอกชื่อผู้รับ เลขที่กรมธรรม์ และวันครบกำหนด เพื่อบันทึกอัตโนมัติ'; statusEl.classList.remove('ok'); }
+    return;
+  }
+  const {id, ...data} = d;
+  const newId = await saveNotice(id, data);
+  activeNoticeDraft.id = newId;
+  renderNoticeList();
+  if(statusEl){ statusEl.textContent = 'บันทึกอัตโนมัติแล้ว ✓ ' + nowTimeStr(); statusEl.classList.add('ok'); }
+}
+
+function wireNoticePremiumCalc(){
+  const sumEl=byId('n_sumInsured'), rateEl=byId('n_premiumRate'), netEl=byId('n_netPremium'), vatEl=byId('n_vatAmount'), dutyEl=byId('n_dutyAmount'), totalEl=byId('n_premiumTotal');
+  function sync(){
+    activeNoticeDraft.sumInsured=sumEl.value; activeNoticeDraft.premiumRate=rateEl.value; activeNoticeDraft.netPremium=netEl.value;
+    activeNoticeDraft.vatAmount=vatEl.value; activeNoticeDraft.dutyAmount=dutyEl.value; activeNoticeDraft.premium=totalEl.value;
+    renderPreviewOnly(); scheduleAutosaveNotice();
+  }
+  function recalc(source){
+    if(source==='sum'||source==='rate'){ netEl.value = calcNet(sumEl.value, rateEl.value); }
+    vatEl.value = calcVat(netEl.value); dutyEl.value = calcDuty(netEl.value);
+    totalEl.value = (Number(netEl.value)||0)+(Number(vatEl.value)||0)+(Number(dutyEl.value)||0);
+    sync();
+  }
+  sumEl.oninput=()=>recalc('sum'); rateEl.oninput=()=>recalc('rate'); netEl.oninput=()=>recalc('net');
+}
+
+function renderNoticeEditor(){
+  const area = document.getElementById('noticeEditorArea');
+  if(!area) return;
+  if(!activeNoticeDraft){ area.innerHTML=''; return; }
+  const d = activeNoticeDraft;
+  const policyOptions = policies.map(p=> `<option value="${p.id}" ${p.id===d.policyId?'selected':''}>${escapeHtml(p.policyNumber)} — ${escapeHtml(p.insuredName)}</option>`).join('');
+
+  area.innerHTML = `
+    <div class="panel">
+      <div class="panel-head">
+        <div><h3>${d.id ? 'แก้ไขใบเตือน' : 'สร้างใบเตือนต่ออายุ'}</h3><div class="desc">แก้ไขข้อมูลด้านซ้าย ตัวอย่างเอกสารภาษาอังกฤษจะอัปเดตอัตโนมัติ</div></div>
+        <button class="icon-btn" id="closeNoticeEditor" title="ปิด">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="notice-layout">
+          <div>
+            <div class="field-compact"><label>เลือกกรมธรรม์ (เติมข้อมูลอัตโนมัติ)</label><select id="n_policySelect"><option value="">— เลือกกรมธรรม์ —</option>${policyOptions}</select></div>
+            <div class="field-compact"><label>เลขที่ใบเตือน</label><input type="text" id="n_noticeNumber" value="${escapeHtml(d.noticeNumber)}"></div>
+            <div class="field-compact"><label>วันที่ออกใบเตือน</label><input type="date" id="n_issueDate" value="${escapeHtml(d.issueDate)}"></div>
+            <div class="field-compact"><label>เรียน (ชื่อผู้เอาประกันภัย)</label><input type="text" id="n_recipientName" value="${escapeHtml(d.recipientName)}"></div>
+            <div class="field-compact"><label>ที่อยู่ผู้เอาประกันภัย</label><textarea id="n_recipientAddress" rows="2">${escapeHtml(d.recipientAddress)}</textarea></div>
+            <div class="field-compact"><label>อีเมลผู้รับ (สำหรับส่งอีเมล)</label><input type="email" id="n_recipientEmail" value="${escapeHtml(d.recipientEmail||'')}" placeholder="name@email.com"></div>
+            <div class="field-compact"><label>เลขที่กรมธรรม์</label><input type="text" id="n_policyNumber" value="${escapeHtml(d.policyNumber)}"></div>
+            <div class="field-compact"><label>วันครบกำหนดความคุ้มครอง</label><input type="date" id="n_expiryDate" value="${escapeHtml(d.expiryDate)}"></div>
+            <div class="field-compact"><label>กำหนดชำระเบี้ยประกัน</label><input type="date" id="n_paymentDueDate" value="${escapeHtml(d.paymentDueDate)}"></div>
+
+            <div class="form-section-title" style="margin-top:16px;">การคำนวณเบี้ยประกันภัย</div>
+            <div class="field-compact"><label>ทุนประกันภัย (บาท)</label><input type="number" id="n_sumInsured" value="${escapeHtml(d.sumInsured)}"></div>
+            <div class="field-compact"><label>อัตราเบี้ยฯ (% ต่อปี)</label><input type="number" step="0.01" id="n_premiumRate" value="${escapeHtml(d.premiumRate)}"></div>
+            <div class="field-compact"><label>เบี้ยสุทธิ (บาท)</label><input type="number" id="n_netPremium" value="${escapeHtml(d.netPremium)}"></div>
+            <div class="field-compact"><label>ภาษีมูลค่าเพิ่ม 7% (บาท)</label><input type="number" id="n_vatAmount" class="field-computed" readonly value="${escapeHtml(d.vatAmount)}"></div>
+            <div class="field-compact"><label>อากรแสตมป์ 0.4% (บาท)</label><input type="number" id="n_dutyAmount" class="field-computed" readonly value="${escapeHtml(d.dutyAmount)}"></div>
+            <div class="field-compact"><label>เบี้ยรวมที่ต้องชำระ (บาท)</label><input type="number" id="n_premiumTotal" class="field-computed" readonly value="${escapeHtml(d.premium)}"></div>
+
+            <div class="form-section-title" style="margin-top:16px;">อื่น ๆ</div>
+            <div class="field-compact"><label>ข้อมูลบัญชีรับชำระเงิน</label><textarea id="n_bankInfo" rows="2">${escapeHtml(d.bankInfo)}</textarea></div>
+            <div class="field-compact"><label>ข้อความเพิ่มเติม (ถ้ามี)</label><textarea id="n_customMessage" rows="2" placeholder="ข้อความเพิ่มเติมถึงลูกค้า...">${escapeHtml(d.customMessage)}</textarea></div>
+            <div class="field-compact"><label>สถานะใบเตือน</label>
+              <select id="n_status"><option value="ร่าง" ${d.status==='ร่าง'?'selected':''}>ร่าง</option><option value="ส่งแล้ว" ${d.status==='ส่งแล้ว'?'selected':''}>ส่งแล้ว</option></select>
+            </div>
+
+            <div style="margin-top:14px;">
+              <button class="btn btn-primary btn-block" id="resendSendBtn">📧 ส่งอีเมลอัตโนมัติ (Resend)</button>
+              <div class="autosave-status" id="resendSendStatus" style="margin-top:6px;"></div>
+              <div style="font-size:11px; color:var(--c-ink-soft); margin-top:4px; line-height:1.6;">ต้องตั้งค่า Resend API key และอีเมลผู้ส่งที่ยืนยันโดเมนแล้วใน Supabase ก่อนส่ง ระบบจะแนบ PDF ให้อัตโนมัติ</div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+              <button class="btn btn-ghost btn-sm" id="downloadPdfBtn" style="flex:1;">⬇ ดาวน์โหลด PDF</button>
+              <button class="btn btn-ghost btn-sm" id="printNoticeBtn">🖨 พิมพ์</button>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <button class="btn btn-ghost btn-sm" id="emailNoticeBtn">✉ เปิดอีเมล</button>
+              <button class="btn btn-ghost btn-sm" id="copyEmailBtn">📋 คัดลอกข้อความอีเมล</button>
+            </div>
+            <div class="field-compact" style="margin-top:14px; max-width:220px;"><label>ภาษาอีเมล</label><select id="n_emailLanguage"><option value="th" ${(d.emailLanguage||'th')==='th'?'selected':''}>ไทย</option><option value="en" ${d.emailLanguage==='en'?'selected':''}>English</option></select></div>
+            <div style="font-size:11px; color:var(--c-ink-soft); margin-top:6px; line-height:1.6;">• ทางเลือกสำรอง: ดาวน์โหลด PDF ใช้ได้แน่นอนทุกอุปกรณ์ ปุ่มพิมพ์อาจใช้ไม่ได้ในบางหน้าต่าง<br>• ปุ่มเปิดอีเมลจะพยายามเปิดโปรแกรมเมลของคุณพร้อมข้อความ หากไม่เปิด ให้กด "คัดลอกข้อความอีเมล" แล้ววางเอง พร้อมแนบไฟล์ PDF ที่ดาวน์โหลดไว้</div>
+            <div class="autosave-status" id="noticeAutosaveStatus" style="margin-top:10px;">${d.id ? 'แก้ไขแล้วจะบันทึกอัตโนมัติ' : 'เริ่มกรอกข้อมูลเพื่อบันทึกอัตโนมัติ'}</div>
+          </div>
+          <div id="noticePreviewWrap"></div>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('closeNoticeEditor').addEventListener('click', async ()=>{ clearTimeout(noticeAutosaveTimer); await flushNoticeAutosave(); activeNoticeDraft=null; renderNoticeEditor(); });
+  document.getElementById('n_policySelect').addEventListener('change', function(){
+    const p = policies.find(x=>x.id===this.value);
+    if(p){
+      activeNoticeDraft = {...activeNoticeDraft, policyId:p.id, recipientName:p.insuredName, recipientAddress:p.address, recipientEmail:p.email,
+        policyNumber:p.policyNumber, policyType:p.policyType, sumInsured:p.sumInsured, premiumRate:p.premiumRate, netPremium:p.netPremium,
+        vatAmount:p.vatAmount, dutyAmount:p.dutyAmount, premium:p.premium, expiryDate:p.endDate, paymentDueDate:p.dueDate||p.endDate, bankInfo:p.bankInfo };
+      renderNoticeEditor();
+    }
+  });
+  const bindLive = (elId, field)=>{ const el = document.getElementById(elId); el.addEventListener('input', ()=>{ activeNoticeDraft[field] = el.value; renderPreviewOnly(); scheduleAutosaveNotice(); }); };
+  bindLive('n_noticeNumber','noticeNumber'); bindLive('n_issueDate','issueDate');
+  bindLive('n_recipientName','recipientName'); bindLive('n_recipientAddress','recipientAddress'); bindLive('n_recipientEmail','recipientEmail');
+  document.getElementById('n_emailLanguage').addEventListener('change', function(){ activeNoticeDraft.emailLanguage = this.value; scheduleAutosaveNotice(); });
+  bindLive('n_policyNumber','policyNumber'); bindLive('n_expiryDate','expiryDate'); bindLive('n_paymentDueDate','paymentDueDate');
+  bindLive('n_bankInfo','bankInfo'); bindLive('n_customMessage','customMessage');
+  document.getElementById('n_status').addEventListener('change', function(){ activeNoticeDraft.status = this.value; scheduleAutosaveNotice(); });
+  wireNoticePremiumCalc();
+
+  document.getElementById('printNoticeBtn').addEventListener('click', ()=> window.print());
+  document.getElementById('downloadPdfBtn').addEventListener('click', downloadNoticePDF);
+  document.getElementById('emailNoticeBtn').addEventListener('click', openEmailClient);
+  document.getElementById('copyEmailBtn').addEventListener('click', copyEmailText);
+  document.getElementById('resendSendBtn').addEventListener('click', sendNoticeEmailResend);
+
+  renderPreviewOnly();
+}
+
+function translatePolicyType(t){ return TYPE_EN[t] || t || '—'; }
+
+function renderPreviewOnly(){
+  const wrap = document.getElementById('noticePreviewWrap');
+  if(!wrap || !activeNoticeDraft) return;
+  const d = activeNoticeDraft;
+  wrap.innerHTML = `
+    <div class="notice-doc" id="printArea">
+      <div class="doc-head">
+        <div><div class="doc-title">Fire Insurance Renewal Notice</div><div class="doc-sub">${INSURER_EN}</div></div>
+        <div class="doc-no">Notice No.: ${escapeHtml(d.noticeNumber||'—')}<br>Date Issued: ${formatEnglishDate(d.issueDate)}</div>
+      </div>
+      <p class="doc-para">Dear ${escapeHtml(d.recipientName||'Valued Customer')},<br>${d.recipientAddress ? escapeHtml(d.recipientAddress) + '<br>' : ''}</p>
+      <p class="doc-para">We are writing to inform you that your fire insurance policy is approaching, or has reached, its expiry date. To ensure continuous protection of your property, kindly arrange for renewal before the payment due date shown below.</p>
+      <table class="doc-table">
+        <tr><td>Policy Number</td><td>${escapeHtml(d.policyNumber||'—')}</td></tr>
+        <tr><td>Insurer</td><td>${INSURER_EN}</td></tr>
+        <tr><td>Type of Coverage</td><td>${escapeHtml(translatePolicyType(d.policyType))}</td></tr>
+        <tr><td>Sum Insured</td><td>${formatBahtEN(d.sumInsured)}</td></tr>
+        <tr><td>Policy Expiry Date</td><td>${formatEnglishDate(d.expiryDate)}</td></tr>
+      </table>
+      <table class="doc-table premium-table">
+        <tr><td>Net Premium</td><td>${formatBahtEN(d.netPremium)}</td></tr>
+        <tr><td>VAT (7%)</td><td>${formatBahtEN(d.vatAmount)}</td></tr>
+        <tr><td>Stamp Duty (0.4%)</td><td>${formatBahtEN(d.dutyAmount)}</td></tr>
+        <tr class="total-row"><td>Total Premium Payable</td><td>${formatBahtEN(d.premium)}</td></tr>
+      </table>
+      <p class="doc-para"><strong>Payment Due Date:</strong> ${formatEnglishDate(d.paymentDueDate)}</p>
+      ${d.bankInfo ? `<div class="pay-box"><div class="t">Payment Information</div>${escapeHtml(d.bankInfo).replace(/\n/g,'<br>')}</div>` : ''}
+      ${d.customMessage ? `<p class="doc-para" style="margin-top:16px;">${escapeHtml(d.customMessage).replace(/\n/g,'<br>')}</p>` : ''}
+      <p class="doc-para" style="margin-top:18px;">If you have already made payment or contacted us regarding this policy, please disregard this notice. Thank you for your continued trust in our service.</p>
+      <div class="sign-area">Sincerely,<br><br><br>________________________<br>Policy Administration Team<br>${INSURER_EN}<br>${INSURER_ADDRESS_EN}</div>
+    </div>`;
+}
+
+async function buildNoticePdfDoc(d){
+  const jsPDFCtor = (window.jspdf && window.jspdf.jsPDF) ? window.jspdf.jsPDF : null;
+  const renderHtml = window.html2canvas;
+  const preview = document.getElementById('printArea');
+  if(!jsPDFCtor || !renderHtml || !preview) return null;
+  if(document.fonts?.ready) await document.fonts.ready;
+  const canvas = await renderHtml(preview, {scale:3, backgroundColor:'#ffffff', useCORS:true, logging:false});
+  const doc = new jsPDFCtor({unit:'pt', format:'a4', compress:true});
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 30;
+  const fit = Math.min((pageW-margin*2)/canvas.width, (pageH-margin*2)/canvas.height);
+  const width = canvas.width*fit;
+  const height = canvas.height*fit;
+  doc.addImage(canvas.toDataURL('image/png'), 'PNG', (pageW-width)/2, margin, width, height, undefined, 'FAST');
+  return doc;
+}
+function safePolicyFileTag(d){ return (d.policyNumber||'draft').replace(/[^A-Za-z0-9-]/g,'') || 'draft'; }
+function arrayBufferToBase64(buffer){
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for(let i=0; i<bytes.byteLength; i++){ binary += String.fromCharCode(bytes[i]); }
+  return btoa(binary);
+}
+
+async function downloadNoticePDF(){
+  const btn = document.getElementById('downloadPdfBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'กำลังสร้าง PDF...'; }
+  try{
+    const doc = await buildNoticePdfDoc(activeNoticeDraft);
+    if(!doc){ alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ PDF ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง'); return; }
+    const blob = doc.output('blob');
+    const filename = `Fire-Insurance-Renewal-Notice-${safePolicyFileTag(activeNoticeDraft)}.pdf`;
+    if(downloadsNS){
+      await downloadsNS.save({filename, data: blob});
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+  }catch(e){
+    if(e && e.code==='declined'){ /* cancelled by viewer */ }
+    else{ console.error(e); alert('ไม่สามารถสร้างไฟล์ PDF ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง'); }
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent='⬇ ดาวน์โหลด PDF'; }
+  }
+}
+
+async function sendNoticeEmailResend(){
+  const btn = document.getElementById('resendSendBtn');
+  const statusEl = document.getElementById('resendSendStatus');
+  const d = activeNoticeDraft;
+  function setStatus(text, ok){
+    if(!statusEl) return;
+    statusEl.textContent = text;
+    statusEl.classList.toggle('ok', !!ok);
+  }
+  if(!d.recipientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.recipientEmail)){ setStatus('กรุณากรอกอีเมลผู้รับที่ถูกต้องก่อนส่ง', false); return; }
+  if(btn){ btn.disabled = true; btn.textContent = 'กำลังส่ง...'; }
+  setStatus('กำลังเตรียมไฟล์แนบและส่งอีเมล...', false);
+  try{
+    if(!supabaseClient){ setStatus('ต้องเปิดระบบออนไลน์และเข้าสู่ระบบก่อนส่งอีเมล', false); return; }
+    const doc = await buildNoticePdfDoc(d);
+    if(!doc){ setStatus('ไม่สามารถสร้างไฟล์ PDF แนบได้ในขณะนี้', false); return; }
+    const base64Pdf = arrayBufferToBase64(doc.output('arraybuffer'));
+    const {subject, body} = buildEmailParts(d);
+    const {data, error} = await supabaseClient.functions.invoke('send-renewal-email', {
+      body:{
+        to:d.recipientEmail,
+        subject,
+        text:body,
+        noticeId:d.id||null,
+        policyId:d.policyId||null,
+        policyNumber:d.policyNumber||null,
+        expiryDate:d.expiryDate||null,
+        language:d.emailLanguage||'th',
+        filename:`Fire-Insurance-Renewal-Notice-${safePolicyFileTag(d)}.pdf`,
+        attachmentBase64:base64Pdf,
+      },
+    });
+    if(error){
+      let message = error.message || 'ส่งอีเมลไม่สำเร็จ';
+      try{ const details = await error.context.json(); message = details.error || details.message || message; }catch(e){}
+      throw new Error(message);
+    }
+    if(data?.error) throw new Error(data.error);
+    setStatus('ส่งอีเมลสำเร็จ ✓ ' + nowTimeStr(), true);
+    activeNoticeDraft.status = 'ส่งแล้ว';
+    await loadEmailHistory();
+    scheduleAutosaveNotice();
+  }catch(err){
+    console.error(err);
+    setStatus('ส่งอีเมลไม่สำเร็จ: ' + (err && err.message ? err.message : 'ไม่ทราบสาเหตุ'), false);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '📧 ส่งอีเมลอัตโนมัติ (Resend)'; }
+  }
+}
+
+function buildEmailParts(d){
+  if((d.emailLanguage||'th')==='th'){
+    const lines = [
+      `เรียน ${d.recipientName || 'ผู้เอาประกันภัย'}`,
+      '',
+      `บริษัท ${INSURER_TH} ขอแจ้งเตือนการต่ออายุประกันอัคคีภัยของท่าน`,
+      '',
+      `เลขที่กรมธรรม์: ${d.policyNumber || '—'}`,
+      `ประเภทความคุ้มครอง: ${d.policyType || '—'}`,
+      `ทุนประกันภัย: ${formatBaht(d.sumInsured)}`,
+      `วันสิ้นสุดความคุ้มครอง: ${formatThaiDate(d.expiryDate)}`,
+      `เบี้ยประกันภัยสุทธิ: ${formatBaht(d.netPremium)}`,
+      `ภาษีมูลค่าเพิ่ม 7%: ${formatBaht(d.vatAmount)}`,
+      `อากรแสตมป์ 0.4%: ${formatBaht(d.dutyAmount)}`,
+      `เบี้ยรวมที่ต้องชำระ: ${formatBaht(d.premium)}`,
+      `กำหนดชำระ: ${formatThaiDate(d.paymentDueDate)}`,
+      d.bankInfo ? `ข้อมูลการชำระเงิน: ${d.bankInfo}` : '',
+      d.customMessage ? `\n${d.customMessage}` : '',
+      '',
+      'หากท่านได้ชำระเงินหรือติดต่อเจ้าหน้าที่แล้ว ขออภัยในความไม่สะดวก',
+      '',
+      'ขอแสดงความนับถือ',
+      'ฝ่ายดูแลกรมธรรม์',
+      INSURER_TH,
+    ].filter((line, index, all)=>line!=='' || (index>0 && all[index-1]!==''));
+    return {
+      to:d.recipientEmail||'',
+      subject:`แจ้งเตือนต่ออายุประกันอัคคีภัย กรมธรรม์ ${d.policyNumber||''}`.trim(),
+      body:lines.join('\n'),
+    };
+  }
+  return {
+    to: d.recipientEmail || '',
+    subject: fillTemplate(DEFAULT_EMAIL_SUBJECT, d),
+    body: fillTemplate(DEFAULT_EMAIL_BODY, d),
+  };
+}
+function openEmailClient(){
+  const {to, subject, body} = buildEmailParts(activeNoticeDraft);
+  const mailto = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const win = window.open(mailto, '_blank');
+  if(!win){ window.location.href = mailto; }
+}
+async function copyEmailText(){
+  const btn = document.getElementById('copyEmailBtn');
+  const {to, subject, body} = buildEmailParts(activeNoticeDraft);
+  const fullText = `To: ${to}\nSubject: ${subject}\n\n${body}`;
+  try{
+    if(!(navigator.clipboard && navigator.clipboard.writeText)) throw new Error('no-clipboard');
+    await navigator.clipboard.writeText(fullText);
+    if(btn){ const old = btn.textContent; btn.textContent = 'คัดลอกแล้ว ✓'; setTimeout(()=>{ if(btn) btn.textContent = old; }, 1800); }
+  }catch(e){
+    window.prompt('คัดลอกข้อความอีเมลด้านล่าง (Ctrl/Cmd+C แล้วกด Enter):', fullText);
+  }
+}
+
+// ---------------------------------------------------------------
+// Excel report
+// ---------------------------------------------------------------
+async function exportExcelReport(){
+  if(policies.length===0 && notices.length===0){ alert('ยังไม่มีข้อมูลกรมธรรม์หรือใบเตือนในระบบสำหรับสร้างรายงาน'); return; }
+  if(typeof XLSX==='undefined'){ alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง'); return; }
+  const btn = document.getElementById('exportExcelBtn');
+  if(btn){ btn.disabled = true; btn.textContent = 'กำลังสร้างไฟล์...'; }
+  try{
+    const wb = XLSX.utils.book_new();
+    if(policies.length>0){
+      const sortedPolicies = policies.slice().sort((a,b)=> (daysUntil(a.endDate)??99999) - (daysUntil(b.endDate)??99999));
+      const rows = sortedPolicies.map(p=>({
+        'เลขที่กรมธรรม์': p.policyNumber||'', 'ผู้เอาประกันภัย': p.insuredName||'', 'เลขบัตรประชาชน/นิติบุคคล': p.idNumber||'',
+        'ที่อยู่ทรัพย์สินที่เอาประกัน': p.address||'', 'เบอร์โทรศัพท์': p.phone||'', 'อีเมล': p.email||'',
+        'บริษัทประกันภัย': p.insurerCompany||INSURER_TH, 'ประเภทความคุ้มครอง': p.policyType||'',
+        'ทุนประกันภัย (บาท)': Number(p.sumInsured)||0, 'อัตราเบี้ยฯ (%)': Number(p.premiumRate)||0,
+        'เบี้ยประกันภัยสุทธิ (บาท)': Number(p.netPremium)||0, 'ภาษีมูลค่าเพิ่ม 7% (บาท)': Number(p.vatAmount)||0,
+        'อากรแสตมป์ 0.4% (บาท)': Number(p.dutyAmount)||0, 'เบี้ยรวมที่ต้องชำระ (บาท)': Number(p.premium)||0,
+        'วันเริ่มคุ้มครอง': formatThaiDate(p.startDate), 'วันครบกำหนดความคุ้มครอง': formatThaiDate(p.endDate), 'สถานะกรมธรรม์': policyStatus(p).label,
+        'สถานะการชำระเงิน': p.paymentStatus||'', 'วิธีการชำระเงิน': p.paymentMethod||'', 'วันครบกำหนดชำระ': formatThaiDate(p.dueDate),
+        'วันที่ชำระเงิน': p.paidDate ? formatThaiDate(p.paidDate) : '', 'บัญชี/ธนาคารรับชำระ': p.bankInfo||'', 'หมายเหตุ': p.notes||'',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [{wch:16},{wch:22},{wch:20},{wch:34},{wch:14},{wch:22},{wch:24},{wch:16},{wch:15},{wch:12},{wch:16},{wch:16},{wch:15},{wch:16},{wch:14},{wch:18},{wch:18},{wch:14},{wch:14},{wch:14},{wch:14},{wch:34},{wch:28}];
+      XLSX.utils.book_append_sheet(wb, ws, 'กรมธรรม์ทั้งหมด');
+    }
+    if(notices.length>0){
+      const sortedNotices = notices.slice().sort((a,b)=> (b.issueDate||'').localeCompare(a.issueDate||''));
+      const rows = sortedNotices.map(n=>({
+        'เลขที่ใบเตือน': n.noticeNumber||'', 'วันที่ออกใบเตือน': formatThaiDate(n.issueDate), 'เลขที่กรมธรรม์': n.policyNumber||'',
+        'ผู้เอาประกันภัย': n.recipientName||'', 'อีเมลผู้รับ': n.recipientEmail||'', 'ที่อยู่ผู้เอาประกันภัย': n.recipientAddress||'',
+        'ประเภทความคุ้มครอง': n.policyType||'', 'ทุนประกันภัย (บาท)': Number(n.sumInsured)||0,
+        'เบี้ยประกันภัยสุทธิ (บาท)': Number(n.netPremium)||0, 'ภาษีมูลค่าเพิ่ม 7% (บาท)': Number(n.vatAmount)||0,
+        'อากรแสตมป์ 0.4% (บาท)': Number(n.dutyAmount)||0, 'เบี้ยรวมที่ต้องชำระ (บาท)': Number(n.premium)||0,
+        'วันครบกำหนดความคุ้มครอง': formatThaiDate(n.expiryDate), 'กำหนดชำระเบี้ยประกันภัย': formatThaiDate(n.paymentDueDate),
+        'ข้อมูลบัญชีรับชำระ': n.bankInfo||'', 'สถานะใบเตือน': n.status||'ร่าง', 'หมายเหตุ': n.customMessage||'',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [{wch:16},{wch:14},{wch:16},{wch:24},{wch:22},{wch:32},{wch:16},{wch:15},{wch:16},{wch:16},{wch:15},{wch:16},{wch:18},{wch:18},{wch:34},{wch:12},{wch:28}];
+      XLSX.utils.book_append_sheet(wb, ws, 'ใบเตือนต่ออายุ');
+    }
+    const arrayBuf = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const blob = new Blob([arrayBuf], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const stamp = new Date().toISOString().slice(0,10);
+    const filename = `รายงานประกันอัคคีภัย-${stamp}.xlsx`;
+    if(downloadsNS){
+      await downloadsNS.save({filename, data: blob});
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    }
+  }catch(e){
+    if(e && e.code === 'declined'){ /* cancelled */ }
+    else{ console.error(e); alert('ไม่สามารถดาวน์โหลดรายงาน Excel ได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง'); }
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '⬇ ดาวน์โหลดรายงาน Excel'; }
+  }
+}
+function renderUserManagement(){
+  const content = document.getElementById('content');
+  if(!canManageUsers){
+    content.innerHTML = `<div class="panel"><div class="empty-state"><div class="msg">บัญชีนี้ไม่มีสิทธิ์จัดการผู้ใช้</div></div></div>`;
+    return;
+  }
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><div><h3>สร้างบัญชีเจ้าหน้าที่</h3><div class="desc">กำหนดอีเมลและรหัสผ่านเริ่มต้น</div></div></div>
+      <div class="panel-body" style="padding:20px;">
+        <form class="user-admin-form" id="userCreateForm">
+          <div class="field-compact"><label for="newUserEmail">อีเมล</label><input type="email" id="newUserEmail" autocomplete="off" required></div>
+          <div class="field-compact"><label for="newUserPassword">รหัสผ่านเริ่มต้น (อย่างน้อย 12 ตัวอักษร)</label><input type="password" id="newUserPassword" minlength="12" autocomplete="new-password" required></div>
+          <div class="field-compact"><label for="newUserRole">สิทธิ์</label><select id="newUserRole"><option value="staff">เจ้าหน้าที่ (แก้ไขข้อมูล)</option><option value="admin">แอดมิน (จัดการผู้ใช้และลบข้อมูลได้)</option></select></div>
+          <button class="btn btn-primary" id="createUserBtn" type="submit">สร้างบัญชี</button>
+          <div class="autosave-status" id="userCreateStatus" role="status" aria-live="polite" style="margin-top:10px;"></div>
+        </form>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h3>บัญชีในระบบ</h3><div class="desc">เปลี่ยน role ของบัญชีเจ้าหน้าที่</div></div><button class="btn btn-ghost btn-sm" id="refreshUserListBtn">รีเฟรช</button></div>
+      <div class="table-wrap" id="managedUserList"><div class="cell-soft">กำลังโหลดบัญชี...</div></div>
+    </div>`;
+  const form = document.getElementById('userCreateForm');
+  const button = document.getElementById('createUserBtn');
+  const status = document.getElementById('userCreateStatus');
+  document.getElementById('refreshUserListBtn').addEventListener('click', loadManagedUsers);
+  loadManagedUsers();
+  form.addEventListener('submit', async event=>{
+    event.preventDefault();
+    button.disabled = true;
+    status.textContent = 'กำลังสร้างบัญชี...';
+    try{
+      const {data, error} = await supabaseClient.functions.invoke('manage-users', {
+        body:{
+          action:'create',
+          email:byId('newUserEmail').value.trim(),
+          password:byId('newUserPassword').value,
+          role:byId('newUserRole').value,
+        },
+      });
+      if(error){
+        let message = error.message || 'ไม่สามารถสร้างบัญชีได้';
+        try{ const details = await error.context.json(); message = details.error || details.message || message; }catch(e){}
+        throw new Error(message);
+      }
+      if(data?.error) throw new Error(data.error);
+      form.reset();
+      status.textContent = 'สร้างบัญชีสำเร็จ: ' + data.user.email;
+      status.classList.add('ok');
+      await loadManagedUsers();
+    }catch(error){
+      status.classList.remove('ok');
+      status.textContent = 'สร้างบัญชีไม่สำเร็จ: ' + (error.message || 'ตรวจสอบการตั้งค่าแล้วลองอีกครั้ง');
+    }finally{
+      button.disabled = false;
+    }
+  });
+}
+async function loadManagedUsers(){
+  const area = document.getElementById('managedUserList');
+  if(!area || !supabaseClient) return;
+  area.innerHTML='<div class="cell-soft" style="padding:14px 0;">กำลังโหลดบัญชี...</div>';
+  const {data,error}=await supabaseClient.functions.invoke('manage-users',{body:{action:'list'}});
+  if(error){
+    let message=error.message||'โหลดบัญชีไม่สำเร็จ';
+    try{const details=await error.context.json();message=details.error||details.message||message;}catch(e){}
+    area.innerHTML=`<div class="empty-state">${escapeHtml(message)}</div>`;
+    return;
+  }
+  if(data?.error){area.innerHTML=`<div class="empty-state">${escapeHtml(data.error)}</div>`;return;}
+  if(!data?.users?.length){area.innerHTML='<div class="empty-state">ยังไม่มีบัญชีผู้ใช้</div>';return;}
+  area.innerHTML=`<table><thead><tr><th>อีเมล</th><th>สร้างเมื่อ</th><th>สิทธิ์</th><th></th></tr></thead><tbody>${data.users.map(user=>`<tr><td>${escapeHtml(user.email||'—')}</td><td>${user.createdAt?escapeHtml(new Date(user.createdAt).toLocaleDateString('th-TH')):'—'}</td><td><select data-user-role="${user.id}"><option value="staff" ${user.role==='staff'?'selected':''}>เจ้าหน้าที่</option><option value="admin" ${user.role==='admin'?'selected':''}>แอดมิน</option></select></td><td><button class="btn btn-ghost btn-sm" data-save-role="${user.id}">บันทึกสิทธิ์</button></td></tr>`).join('')}</tbody></table>`;
+  area.querySelectorAll('[data-save-role]').forEach(button=>button.addEventListener('click',async()=>{
+    const userId=button.dataset.saveRole;
+    const roleSelect=area.querySelector(`[data-user-role="${userId}"]`);
+    button.disabled=true;
+    try{
+      const {data:updateData,error:updateError}=await supabaseClient.functions.invoke('manage-users',{body:{action:'set-role',userId,role:roleSelect.value}});
+      if(updateError){let message=updateError.message||'เปลี่ยนสิทธิ์ไม่สำเร็จ';try{const details=await updateError.context.json();message=details.error||details.message||message;}catch(e){}throw new Error(message);}
+      if(updateData?.error)throw new Error(updateData.error);
+      await loadManagedUsers();
+    }catch(error){alert(error.message||'เปลี่ยนสิทธิ์ไม่สำเร็จ');}
+    finally{button.disabled=false;}
+  }));
+}
+function renderReports(){
+  const content = document.getElementById('content');
+  const near = policies.filter(p=>policyStatus(p).key==='near').length;
+  const expired = policies.filter(p=>policyStatus(p).key==='expired').length;
+  content.innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><div><h3>รายงาน Excel</h3><div class="desc">ดาวน์โหลดข้อมูลทั้งหมดเป็นไฟล์ .xlsx เพื่อนำไปวิเคราะห์หรือส่งต่อ</div></div></div>
+      <div class="panel-body" style="padding-bottom:20px;">
+        <div class="stat-grid" style="margin-bottom:18px;">
+          <div class="stat-card accent-primary"><div class="label">กรมธรรม์ทั้งหมด</div><div class="value">${policies.length}</div></div>
+          <div class="stat-card accent-amber"><div class="label">ใกล้ครบกำหนด</div><div class="value">${near}</div></div>
+          <div class="stat-card accent-danger"><div class="label">หมดอายุแล้ว</div><div class="value">${expired}</div></div>
+          <div class="stat-card accent-success"><div class="label">ใบเตือนที่บันทึกไว้</div><div class="value">${notices.length}</div></div>
+        </div>
+        <p style="font-size:13px; color:var(--c-ink-soft); max-width:640px; margin-bottom:16px;">
+          ไฟล์ Excel จะมีชีต "กรมธรรม์ทั้งหมด" รวมข้อมูลกรมธรรม์ ผู้เอาประกันภัย ทุนประกัน เบี้ยสุทธิ ภาษี อากร เบี้ยรวม วันครบกำหนด และสถานะการชำระเงินของทุกรายการ
+          พร้อมชีต "ใบเตือนต่ออายุ" สำหรับใบเตือนที่บันทึกไว้ (ถ้ามี)
+        </p>
+        <button class="btn btn-primary" id="exportExcelBtn">⬇ ดาวน์โหลดรายงาน Excel</button>
+      </div>
+    </div>`;
+  document.getElementById('exportExcelBtn').addEventListener('click', exportExcelReport);
+}
+
+checkAuth();
+})();
+</script>
+</body>
+</html>
